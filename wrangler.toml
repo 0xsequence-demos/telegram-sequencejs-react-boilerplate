@@ -1,0 +1,8 @@
+name = "offchain-sales-boilerplate"
+pages_build_output_dir = "./dist"
+
+[vars]
+PROJECT_ACCESS_KEY = "AQAAAAAAADVH8R2AGuQhwQ1y8NaEf1T7PJM"
+
+[dev]
+port = 4444

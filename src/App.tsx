@@ -1,5 +1,5 @@
 import Home from "./views/Home";
-import { getDefaultWaasConnectors, KitProvider } from "@0xsequence/kit";
+import { getDefaultWaasConnectors, KitConfig, KitProvider } from "@0xsequence/kit";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createConfig, http, WagmiProvider } from "wagmi";
 import chains from "./utils/chains";
@@ -41,8 +41,10 @@ const App = () => {
     chains,
   });
 
-  const kitConfig = {
+  const kitConfig:KitConfig = {
     projectAccessKey,
+    googleUseRedirectMode: true,
+    googleRedirectModeLoginUri: window.location.origin + '/api/auth'
   };
 
   return (
