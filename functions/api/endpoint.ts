@@ -18,25 +18,24 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const update: any = await ctx.request.json();
 
-  const d = JSON.stringify(update)
-  if("game_short_name" in update) {
-    console.log('game found in ', d)
-  } else {
-    console.log('game NOT found in ', d)
-  }
-
-  if("game_short_name" in update) {
-    const d2 = {
-      callback_query_id: update.callback_query.id,
-      url: 'https://telegram-kit-embedded-wallet-react-boilerplate.pages.dev',
+  if ("callback_query" in update) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const qbc = update.callback_query as any;
+    if ("game_short_name" in qbc) {
+      const responseData = {
+        callback_query_id: qbc.id,
+        url: "https://telegram-kit-embedded-wallet-react-boilerplate.pages.dev",
+      };
+      console.log("respond with ", responseData);
+      const r: { ok: boolean } = await (
+        await fetch(
+          apiUrl(ctx.env.BOT_TOKEN, "answerCallbackQuery", responseData),
+        )
+      ).json();
+      return new Response(
+        "ok" in r && r.ok ? "Ok" : JSON.stringify(r, null, 2),
+      );
     }
-    console.log('respond with ', d2)
-    const r: { ok: boolean } = await (
-      await fetch(
-        apiUrl(ctx.env.BOT_TOKEN, "answerCallbackQuery", d2),
-      )
-    ).json();
-    return new Response("ok" in r && r.ok ? "Ok" : JSON.stringify(r, null, 2));
   } else if ("message" in update) {
     const r: { ok: boolean } = await (
       await fetch(
