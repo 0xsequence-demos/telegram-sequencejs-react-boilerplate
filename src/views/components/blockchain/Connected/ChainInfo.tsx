@@ -11,6 +11,7 @@ const ChainInfo = (props: { chain: Chain; address: Address }) => {
     <Box marginBottom="8">
       <Box
         display="flex"
+        flexDirection="column"
         gap="4"
         justifyContent="space-between"
         alignItems="flex-end"

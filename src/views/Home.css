@@ -20,3 +20,7 @@
 .homepage__marginBtNormal {
   margin-bottom: 1em;
 }
+
+.force-wrap {
+  word-break: break-all;
+}

@@ -9,7 +9,7 @@ const Connected = () => {
   return (
     <>
       <Text variant="large" fontWeight="bold" color="text100">
-        Connected with address: {address}
+        Connected with address: <span className="force-wrap">{address}</span>
       </Text>
       <Disconnect />
       {chain && <ChainInfo chain={chain} address={address!} />}
