@@ -22,9 +22,10 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const qbc = update.callback_query as any;
     if ("game_short_name" in qbc) {
+      const requestUrl = new URL(ctx.request.url);
       const responseData = {
         callback_query_id: qbc.id,
-        url: "https://telegram-kit-embedded-wallet-react-boilerplate.pages.dev",
+        url: `${requestUrl.protocol}//${requestUrl.hostname}`,
       };
       console.log("respond with ", responseData);
       const r: { ok: boolean } = await (
