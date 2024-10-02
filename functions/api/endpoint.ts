@@ -18,6 +18,8 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const update: any = await ctx.request.json();
 
+  console.log(JSON.stringify(update))
+
   if("game_short_name" in update) {
     const r: { ok: boolean } = await (
       await fetch(
