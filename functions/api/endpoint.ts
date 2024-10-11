@@ -101,8 +101,8 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
     }
   } else if ("message" in update) {
     let url = "";
-    if (/\/init/.test(update.message.text)) {
-      url = apiUrl(ctx.env.BOT_TOKEN, "setChatMenuButton", {
+    if (/\/start/.test(update.message.text)) {
+      const initUrl = apiUrl(ctx.env.BOT_TOKEN, "setChatMenuButton", {
         chat_id: update.message.chat.id,
         menu_button: JSON.stringify({
           type: "web_app",
@@ -112,7 +112,7 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
           },
         }),
       });
-    } else if (/\/start/.test(update.message.text)) {
+      await fetch(initUrl);
       url = apiUrl(ctx.env.BOT_TOKEN, "sendAnimation", {
         chat_id: update.message.chat.id,
         animation: `${webappUrl}/640.gif`,
