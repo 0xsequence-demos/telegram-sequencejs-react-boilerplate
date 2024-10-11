@@ -1,12 +1,13 @@
 import { AxesHelper, Mesh, Object3D, Vector3 } from "three";
 import { unlerpClamped01 } from "../math";
 import { getProtoTargetMesh } from "./protoTargetMesh";
-import { LimbDance } from "./LimbDance";
+import { LimbDanceLayer } from "./LimbDanceLayer";
 
 const searchParams = new URLSearchParams(window.location.search);
 const debug = searchParams.has("debug");
 const __tempVec3 = new Vector3();
 const __tempVec3B = new Vector3();
+const __tempNode = new Object3D();
 
 export default class Limb {
   mesh: Mesh;
@@ -28,8 +29,16 @@ export default class Limb {
   resetHelper() {
     this.targetHelper.position.copy(this.mesh.position);
   }
-  update(time: number, dance: LimbDance) {
-    dance(this.targetHelper, this.side, time);
+  update(time: number, danceLayers: LimbDanceLayer[]) {
+    this.targetHelper.position.set(0, 0, 0);
+    for (const danceLayer of danceLayers) {
+      if (danceLayer.weight > 0) {
+        __tempNode.position.set(0, 0, 0);
+        danceLayer.dance(__tempNode, this.side, time);
+        __tempNode.position.multiplyScalar(danceLayer.weight);
+        this.targetHelper.position.add(__tempNode.position);
+      }
+    }
     this.targetHelper.position.add(this.mesh.position);
     // this.targetHelper.position.set(0,Math.cos(time * 2),Math.sin(time * 1.5) - 1.4)
     __tempVec3.set(0, 0, 0);

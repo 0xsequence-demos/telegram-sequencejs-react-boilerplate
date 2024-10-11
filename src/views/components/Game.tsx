@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 import {
-    Color,
+  Color,
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
@@ -16,18 +16,30 @@ import {
 } from "three";
 import Character from "./Game/character/Character";
 import { useAccount } from "wagmi";
+import { Easing } from "../../utils/easing";
+import AnimatedNumber from "../../utils/AnimatedNumber";
 
-const __tempColor = new Color()
+const LIGHT_COLOR_SKY = 0xffffff;
+const LIGHT_COLOR_GROUND = 0xafafaf;
+
+const __tempColor = new Color();
+const __tempColor2 = new Color();
 let initd = false;
-let gameController:
-  | { party: boolean; character: Character | undefined }
-  | undefined;
+interface IGameController {
+  party: boolean;
+  character: Character | undefined;
+}
+let _gameController: IGameController | undefined;
 function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
-  if (initd && gameController) {
-    return gameController;
+  if (initd && _gameController) {
+    return _gameController;
   }
   initd = true;
-  gameController = { character: undefined, party: false };
+  const gameController: IGameController = {
+    character: undefined,
+    party: false,
+  };
+  _gameController = gameController;
   const scene = new Scene();
   const camera = new PerspectiveCamera(
     75,
@@ -44,7 +56,11 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   // use ref as a mount point of the js scene instead of the document.body
   refContainer.current?.appendChild(renderer.domElement);
   const loader = new GLTFLoader();
-  const lightAmbient = new HemisphereLight(0xffffff, 0xafafaf, 2);
+  const lightAmbient = new HemisphereLight(
+    LIGHT_COLOR_SKY,
+    LIGHT_COLOR_GROUND,
+    2,
+  );
   const lightDirect = new SpotLight(0xffffff, 200, 20, Math.PI / 12);
   lightDirect.castShadow = true;
   lightDirect.shadow.mapSize.setScalar(1024);
@@ -69,7 +85,7 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
       n.castShadow = true;
     });
     character = new Character(gltf.scene, scene);
-    gameController!.character = character;
+    gameController.character = character;
   });
 
   const boom = new Object3D();
@@ -79,19 +95,27 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   boom.position.y = 1.75;
   camera.rotateY(Math.PI);
   boom.add(camera);
+  const partyFloat = new AnimatedNumber(0, 0.01);
+  let lastTime = performance.now() * 0.001;
   const animate = function () {
     requestAnimationFrame(animate);
     const time = performance.now() * 0.001;
+    const deltaTime = time - lastTime;
+    lastTime = time;
     character?.update(time);
-    if(gameController?.party) {
-        __tempColor.setHSL(time * 0.5, 0.5, 0.75)
-        lightAmbient.color.copy(__tempColor)
-        __tempColor.setHSL(time * 0.5 - 0.1, 0.8, 0.2)
-        lightAmbient.groundColor.copy(__tempColor)
-        renderer.setClearColor(__tempColor.getHex())
-    } else {
-        renderer.setClearColor(0x3f3f3f);
+    lightAmbient.color.set(LIGHT_COLOR_SKY);
+    lightAmbient.groundColor.set(LIGHT_COLOR_GROUND);
+    partyFloat.target = gameController.party ? 1 : 0;
+    partyFloat.update(deltaTime);
+    const partyAnim = Easing.Quadratic.InOut(partyFloat.value);
+    if (partyAnim > 0.001) {
+      __tempColor.setHSL(time * 0.5, 0.5, 0.75);
+      lightAmbient.color.lerp(__tempColor, partyAnim);
+      __tempColor2.setHSL(time * 0.5 - 0.1, 0.8, 0.2);
+      lightAmbient.groundColor.lerp(__tempColor2, partyAnim);
     }
+    __tempColor.set(0x3f3f3f).lerp(__tempColor2, partyAnim);
+    renderer.setClearColor(__tempColor.getHex());
     renderer.render(scene, camera);
   };
   animate();
@@ -114,7 +138,7 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
     void ev;
     usingTouch = true;
   });
-  return gameController;
+  return _gameController;
 }
 
 function Game() {
@@ -127,7 +151,7 @@ function Game() {
       while (!gc.character) {
         await new Promise((resolve) => setTimeout(resolve, 100));
       }
-      gc.character.currentAnimation = isConnected ? "danceBasic" : "greeting";
+      gc.character.happiness.target = isConnected ? 1 : 0;
       gc.party = isConnected;
     })();
   }, [isConnected]);
