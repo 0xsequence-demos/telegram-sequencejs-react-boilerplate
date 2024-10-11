@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { GLTFLoader } from "three/examples/jsm/Addons.js";
 import {
+    Color,
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
@@ -14,13 +15,19 @@ import {
   WebGLRenderer,
 } from "three";
 import Character from "./Game/character/Character";
+import { useAccount } from "wagmi";
 
+const __tempColor = new Color()
 let initd = false;
+let gameController:
+  | { party: boolean; character: Character | undefined }
+  | undefined;
 function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
-  if (initd) {
-    return;
+  if (initd && gameController) {
+    return gameController;
   }
   initd = true;
+  gameController = { character: undefined, party: false };
   const scene = new Scene();
   const camera = new PerspectiveCamera(
     75,
@@ -62,20 +69,29 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
       n.castShadow = true;
     });
     character = new Character(gltf.scene, scene);
+    gameController!.character = character;
   });
 
   const boom = new Object3D();
   boom.rotation.order = "YXZ";
   scene.add(boom);
-  camera.position.z = -3;
+  camera.position.z = -4;
   boom.position.y = 1.75;
   camera.rotateY(Math.PI);
   boom.add(camera);
-  camera.userData.rotationX = -Math.PI;
   const animate = function () {
     requestAnimationFrame(animate);
     const time = performance.now() * 0.001;
     character?.update(time);
+    if(gameController?.party) {
+        __tempColor.setHSL(time * 0.5, 0.5, 0.75)
+        lightAmbient.color.copy(__tempColor)
+        __tempColor.setHSL(time * 0.5 - 0.1, 0.8, 0.2)
+        lightAmbient.groundColor.copy(__tempColor)
+        renderer.setClearColor(__tempColor.getHex())
+    } else {
+        renderer.setClearColor(0x3f3f3f);
+    }
     renderer.render(scene, camera);
   };
   animate();
@@ -91,20 +107,30 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
     if (usingTouch) {
       return;
     }
-    boom.rotation.y = (ev.clientX / window.innerWidth - 0.5) * 4;
-    boom.rotation.x = -(ev.clientY / window.innerHeight - 0.5) * 2;
+    boom.rotation.y = (ev.clientX / window.innerWidth - 0.5) * 1;
+    boom.rotation.x = -(ev.clientY / window.innerHeight - 0.5) * 0.5;
   });
   window.addEventListener("touchstart", (ev) => {
     void ev;
     usingTouch = true;
   });
+  return gameController;
 }
 
 function Game() {
   const refContainer = useRef<HTMLDivElement>(null);
+  const { isConnected } = useAccount();
+
   useEffect(() => {
-    initGame(refContainer);
-  }, []);
+    const gc = initGame(refContainer);
+    (async () => {
+      while (!gc.character) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      gc.character.currentAnimation = isConnected ? "danceBasic" : "greeting";
+      gc.party = isConnected;
+    })();
+  }, [isConnected]);
   return <div ref={refContainer}></div>;
 }
 

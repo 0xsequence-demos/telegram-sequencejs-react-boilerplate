@@ -15,7 +15,6 @@ export default class Limb {
     templateMesh: Mesh,
     flipJoint = false,
     public side: 1 | -1,
-    private _dance: LimbDance,
     private _secondaryTarget: Vector3,
   ) {
     this.mesh = templateMesh.clone();
@@ -29,8 +28,8 @@ export default class Limb {
   resetHelper() {
     this.targetHelper.position.copy(this.mesh.position);
   }
-  update(time: number) {
-    this._dance(this.targetHelper, this.side, time);
+  update(time: number, dance: LimbDance) {
+    dance(this.targetHelper, this.side, time);
     this.targetHelper.position.add(this.mesh.position);
     // this.targetHelper.position.set(0,Math.cos(time * 2),Math.sin(time * 1.5) - 1.4)
     __tempVec3.set(0, 0, 0);
