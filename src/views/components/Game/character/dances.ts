@@ -35,6 +35,7 @@ const danceBasic: Dance = {
     body.rotation.x = cos(time * 8, 2) * 0.05 + 0.1;
     body.rotation.z = cos(-time * 4, 2) * 0.1;
     body.rotation.y = sin(-time * 4, 2) * 0.15;
+    body.position.y = Math.abs(cos(time * 16, 0.5)) * 0.1;
   },
 };
 
