@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { GLTFLoader } from "three/examples/jsm/Addons.js";
 import {
   Color,
   HemisphereLight,
@@ -18,6 +17,9 @@ import Character from "./Game/character/Character";
 import { useAccount } from "wagmi";
 import { Easing } from "../../utils/easing";
 import AnimatedNumber from "../../utils/AnimatedNumber";
+import makeSequenceLogo from "./makeSequenceLogo";
+import { loadGLTF } from "../../utils/loadGLTF";
+import { lerp } from "./Game/math";
 
 const LIGHT_COLOR_SKY = 0xffffff;
 const LIGHT_COLOR_GROUND = 0xafafaf;
@@ -55,7 +57,6 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   // document.body.appendChild( renderer.domElement );
   // use ref as a mount point of the js scene instead of the document.body
   refContainer.current?.appendChild(renderer.domElement);
-  const loader = new GLTFLoader();
   const lightAmbient = new HemisphereLight(
     LIGHT_COLOR_SKY,
     LIGHT_COLOR_GROUND,
@@ -68,6 +69,11 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   lightDirect.shadow.bias = -0.0005;
   scene.add(lightAmbient);
   scene.add(lightDirect);
+  makeSequenceLogo().then((logo) => {
+    logo.position.set(0, -1.9, -2);
+    logo.scale.multiplyScalar(5);
+    scene.add(logo);
+  });
   const floor = new Mesh(
     new PlaneGeometry(10, 10),
     new MeshStandardMaterial({ color: 0x7f7f7f }),
@@ -75,11 +81,11 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   floor.receiveShadow = true;
   floor.position.y = 0.1;
   floor.rotation.x = Math.PI * -0.5;
-  scene.add(floor);
+  // scene.add(floor);
   lightDirect.position.set(7, 7, -7);
   lightDirect.lookAt(new Vector3(0, 0, 0));
   let character: Character | undefined;
-  loader.load("quinn-the-bot.glb", (gltf) => {
+  loadGLTF("quinn-the-bot.glb").then((gltf) => {
     gltf.scene.traverse((n) => {
       n.receiveShadow = true;
       n.castShadow = true;
@@ -91,7 +97,7 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   const boom = new Object3D();
   boom.rotation.order = "YXZ";
   scene.add(boom);
-  camera.position.z = -4;
+  camera.position.z = -12;
   boom.position.y = 1.75;
   camera.rotateY(Math.PI);
   boom.add(camera);
@@ -108,6 +114,7 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
     partyFloat.target = gameController.party ? 1 : 0;
     partyFloat.update(deltaTime);
     const partyAnim = Easing.Quadratic.InOut(partyFloat.value);
+    camera.position.z = lerp(-12, -4, partyAnim);
     if (partyAnim > 0.001) {
       __tempColor.setHSL(time * 0.5, 0.5, 0.75);
       lightAmbient.color.lerp(__tempColor, partyAnim);
@@ -121,7 +128,6 @@ function initGame(refContainer: React.MutableRefObject<HTMLDivElement | null>) {
   animate();
   window.addEventListener("resize", (ev) => {
     void ev;
-    console.log("test");
     renderer.setSize(window.innerWidth, window.innerHeight);
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
