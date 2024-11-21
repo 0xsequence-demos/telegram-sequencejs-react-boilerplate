@@ -2,6 +2,8 @@
 
 Starter Sequence Embedded Wallet boilerplate that uses [Sequence Kit](https://github.com/0xsequence/kit) with React.
 
+The webapp portion of this telegram bot can be accessed directly [here](https://telegram-kit-embedded-wallet-react-boilerplate.sequence-demos.xyz).
+
 ## Quickstart
 
 Copy `.env.example` to `.env` and fill with your project information. To test things out, you can use the pre-provided keys in the `.env.example` file:
