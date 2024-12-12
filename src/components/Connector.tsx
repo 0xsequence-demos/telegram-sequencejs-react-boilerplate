@@ -1,11 +1,21 @@
-import { useOpenConnectModal } from "@0xsequence/kit";
+import { Dispatch, SetStateAction } from "react";
+import { sequence } from "../sequence";
+import { randomName } from "../utils/randomName";
+import { Address } from "viem";
 
-const Connector = () => {
-  const { setOpenConnectModal } = useOpenConnectModal();
+const Connector = (props: {
+  setWalletAddress: Dispatch<SetStateAction<Address | undefined>>;
+}) => {
+  const { setWalletAddress } = props;
+  const handleGuestLogin = async () => {
+    const signInResponse = await sequence.signIn({ guest: true }, randomName());
+    console.log(`Wallet address: ${signInResponse.wallet}`);
+    setWalletAddress(signInResponse.wallet as Address);
+  };
 
   return (
     <div>
-      <button onClick={() => setOpenConnectModal(true)}>Connect</button>
+      <button onClick={handleGuestLogin}>Connect</button>
     </div>
   );
 };
