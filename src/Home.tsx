@@ -1,17 +1,14 @@
 import "./Home.css";
-import Connector from "./components/Connector";
 import MainConnected from "./components/MainConnected";
 import Menu from "./components/Menu";
 import { createTheme, ThemeProvider } from "@mui/material";
 import { useEffect, useState } from "react";
 import { getGameEngine } from "./game/gameEngine";
-import { Account, IdentityType, Network } from "@0xsequence/waas";
+import { Account, Network } from "@0xsequence/waas";
 import { sequence } from "./sequence";
 import { Address } from "viem";
-import { Box, Text } from "@0xsequence/design-system";
-import { AccountName } from "./AccountName";
 import { getMessageFromUnknownError } from "./utils/getMessageFromUnknownError";
-import { randomName } from "./utils/randomName";
+import { ToastProvider } from "@0xsequence/design-system";
 
 const darkTheme = createTheme({
   palette: {
@@ -19,27 +16,50 @@ const darkTheme = createTheme({
   },
 });
 const Home = () => {
-  const [network, setNetwork] = useState<undefined | Network>();
-  const [walletAddress, setWalletAddress] = useState<Address>();
-  const [currentAccount, setCurrentAccount] = useState<Account>();
-  const [firstAttemptMade, setFirstAttemptMade] = useState(false);
+  const [network, setNetwork] = useState<Network | null>(null);
+  const [walletAddress, setWalletAddress] = useState<Address | null>(null);
+  const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [emailAuthInProgress, setEmailAuthInProgress] = useState(false);
+  const [accountChangesPending, setAccountChangesPending] = useState(false);
+  const [accountError, setAccountError] = useState<string | null>(null);
+  const [loggingOut, setLoggingOut] = useState(false);
+
+  const removeAccount = async (id: string) => {
+    setAccountChangesPending(true);
+    setAccounts([]);
+    try {
+      await sequence.removeAccount(id);
+      const response = await sequence.listAccounts();
+      setAccounts(response.accounts);
+    } catch (e: unknown) {
+      setAccountError(getMessageFromUnknownError(e));
+      const response = await sequence.listAccounts();
+      setAccounts(response.accounts);
+    }
+
+    setAccountChangesPending(false);
+  };
 
   useEffect(() => {
+    setAccountChangesPending(true);
     sequence
       .getAddress()
       .then((address: string) => {
+        setAccountChangesPending(false);
         setWalletAddress(address as Address);
-        setFirstAttemptMade(true);
         console.log(address);
       })
       .catch((e: unknown) => {
         console.warn(getMessageFromUnknownError(e));
-        sequence
-          .signIn({ guest: true }, randomName())
-          .then((signInResponse) => {
-            console.log(`Wallet address: ${signInResponse.wallet}`);
-            setWalletAddress(signInResponse.wallet as Address);
-          });
+        setAccountChangesPending(false);
+        // sequence
+        //   .signIn({ guest: true }, randomName())
+        //   .then((signInResponse) => {
+        //     setAccountChangesPending(false);
+        //     console.log(`Wallet address: ${signInResponse.wallet}`);
+        //     setWalletAddress(signInResponse.wallet as Address);
+        //   });
         // setFetchWalletAddressError(getMessageFromUnknownError(e))
       });
   }, []);
@@ -48,59 +68,55 @@ const Home = () => {
     if (!walletAddress) {
       return;
     }
+    setAccountChangesPending(true);
     sequence.listAccounts().then((response) => {
+      setAccountChangesPending(false);
+      setAccounts(response.accounts);
       if (response.currentAccountId) {
         setCurrentAccount(
           response.accounts.find(
             (account) => account.id === response.currentAccountId,
-          ),
+          ) || null,
         );
       }
     });
-  }, [walletAddress]);
+  }, [walletAddress, emailAuthInProgress]);
 
   useEffect(() => {
     getGameEngine().game.party = !!walletAddress;
   }, [walletAddress]);
 
   useEffect(() => {
-    console.log(currentAccount);
+    console.log("currentAccount", currentAccount);
   }, [currentAccount]);
 
   return (
     <ThemeProvider theme={darkTheme}>
-      <div className="ui-wrapper">
-        <div className="topish">
-          {currentAccount && (
-            <Box flexDirection="column" gap="2">
-              <Text marginTop="1" variant="normal" color="text100">
-                {currentAccount.type === IdentityType.Guest
-                  ? "Guest account"
-                  : `Logged in with account type ${currentAccount.type}`}{" "}
-              </Text>
-              {currentAccount.type !== IdentityType.Guest && (
-                <AccountName acc={currentAccount} />
-              )}
-            </Box>
-          )}
-          {walletAddress ? (
-            <MainConnected
-              setCurrentAccount={setCurrentAccount}
-              walletAddress={walletAddress}
-              setWalletAddress={setWalletAddress}
-            />
-          ) : (
-            firstAttemptMade && (
-              <Connector setWalletAddress={setWalletAddress} />
-            )
-          )}
+      <ToastProvider>
+        <div className="ui-wrapper">
+          <div className="topish">
+            {walletAddress && <MainConnected walletAddress={walletAddress} />}
+          </div>
         </div>
-      </div>
-      <Menu
-        network={network}
-        setNetwork={setNetwork}
-        walletAddress={walletAddress}
-      />
+        <Menu
+          network={network}
+          setNetwork={setNetwork}
+          walletAddress={walletAddress}
+          accounts={accounts}
+          setAccounts={setAccounts}
+          currentAccount={currentAccount}
+          accountChangesPending={accountChangesPending}
+          setAccountChangesPending={setAccountChangesPending}
+          accountError={accountError}
+          removeAccount={removeAccount}
+          emailAuthInProgress={emailAuthInProgress}
+          setEmailAuthInProgress={setEmailAuthInProgress}
+          setCurrentAccount={setCurrentAccount}
+          setWalletAddress={setWalletAddress}
+          loggingOut={loggingOut}
+          setLoggingOut={setLoggingOut}
+        />
+      </ToastProvider>
     </ThemeProvider>
   );
 };

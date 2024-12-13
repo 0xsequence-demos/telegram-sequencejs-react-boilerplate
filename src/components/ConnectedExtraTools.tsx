@@ -6,8 +6,8 @@ import { Dispatch, SetStateAction } from "react";
 import { Network } from "@0xsequence/waas";
 
 const ConnectedExtraTools = (props: {
-  network: Network | undefined;
-  setNetwork: Dispatch<SetStateAction<Network | undefined>>;
+  network: Network | null;
+  setNetwork: Dispatch<SetStateAction<Network | null>>;
   walletAddress: Address;
 }) => {
   const { network, setNetwork, walletAddress } = props;
