@@ -25,6 +25,7 @@ function MenuContent(props: {
   tab: string;
   setTab: Dispatch<SetStateAction<string>>;
   loggingOut: boolean;
+  refreshAccounts: () => void;
   setLoggingOut: Dispatch<SetStateAction<boolean>>;
 }) {
   const {
@@ -46,6 +47,7 @@ function MenuContent(props: {
     setCurrentAccount,
     setLoggingOut,
     setWalletAddress,
+    refreshAccounts,
   } = props;
   return (
     <div>
@@ -95,6 +97,7 @@ function MenuContent(props: {
           setCurrentAccount={setCurrentAccount}
           loggingOut={loggingOut}
           setLoggingOut={setLoggingOut}
+          refreshAccounts={refreshAccounts}
         />
       )}
     </div>

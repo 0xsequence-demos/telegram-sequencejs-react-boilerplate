@@ -3,11 +3,13 @@ import { Address } from "viem";
 import { AccountName } from "../../../AccountName";
 import { Account, IdentityType } from "@0xsequence/waas";
 import Email from "../../Email";
-import { Dispatch, SetStateAction } from "react";
+import { Dispatch, SetStateAction, useState } from "react";
 import { sequence } from "../../../sequence";
 import { getMessageFromUnknownError } from "../../../utils/getMessageFromUnknownError";
 import {
   EmailOutlined,
+  LinkOff,
+  Logout,
   PersonOutline,
   ReportProblem,
   Wallet,
@@ -28,6 +30,7 @@ function MenuContentAccounts(props: {
   setEmailAuthInProgress: Dispatch<SetStateAction<boolean>>;
   removeAccount: (id: string) => Promise<void>;
   loggingOut: boolean;
+  refreshAccounts: () => void;
   setLoggingOut: Dispatch<SetStateAction<boolean>>;
 }) {
   const {
@@ -45,7 +48,10 @@ function MenuContentAccounts(props: {
     setCurrentAccount,
     setWalletAddress,
     setAccountChangesPending,
+    refreshAccounts,
   } = props;
+
+  const [accountsUnlinking, setAccountsUnlinking] = useState<string[]>([]);
 
   return (
     <div className="settingsMenuContent scroller">
@@ -86,6 +92,7 @@ function MenuContentAccounts(props: {
             className={loggingOut ? "pending" : ""}
             style={{
               flex: "0 0 150px",
+              position: "relative",
             }}
             onClick={() => {
               if (loggingOut) {
@@ -108,12 +115,26 @@ function MenuContentAccounts(props: {
                 });
             }}
           >
-            {loggingOut ? "Logging Out..." : "Log Out"}
+            {loggingOut ? (
+              "Logging Out..."
+            ) : (
+              <>
+                Log Out
+                <Logout
+                  style={{
+                    position: "absolute",
+                    transform: "translateY(6px)",
+                    right: "4px",
+                    top: "0px",
+                  }}
+                />
+              </>
+            )}
           </button>
         </Box>
       )}
-      <Box marginBottom="5" gap="4" flexDirection="column">
-        {accounts.length === 0 && (
+      <Box marginBottom="5" flexDirection="column">
+        {accounts.length === 0 && !emailAuthInProgress && (
           <button
             className={loggingOut ? "pending" : ""}
             onClick={() => {
@@ -138,7 +159,13 @@ function MenuContentAccounts(props: {
             {accounts
               .filter((a) => a.id !== currentAccount?.id)
               .map((a) => (
-                <Box key={a.id} flexDirection="row" alignItems="center" gap="2">
+                <Box
+                  key={a.id}
+                  flexDirection="row"
+                  alignItems="center"
+                  gap="2"
+                  className={accountsUnlinking.includes(a.id) ? "pending" : "'"}
+                >
                   <div style={{ flex: "0 0 20px" }}>
                     <PersonOutline style={{ transform: "translateY(6px)" }} />
                   </div>
@@ -147,15 +174,38 @@ function MenuContentAccounts(props: {
                   </div>
                   {a.id !== currentAccount?.id && (
                     <button
-                      onClick={() => removeAccount(a.id)}
-                      style={{ flex: "0 0 150px" }}
+                      onClick={() => {
+                        if (accountsUnlinking.includes(a.id)) {
+                          return;
+                        }
+                        setAccountsUnlinking(accountsUnlinking.concat(a.id));
+                        removeAccount(a.id).then(() => {
+                          setAccountsUnlinking(
+                            accountsUnlinking.filter((id) => id !== a.id),
+                          );
+                        });
+                      }}
+                      style={{ flex: "0 0 150px", position: "relative" }}
                     >
-                      Unlink{" "}
                       {a.type === IdentityType.Guest ? (
                         <ReportProblem
-                          style={{ transform: "translateY(4px)" }}
+                          style={{
+                            position: "absolute",
+                            left: "10px",
+                            top: "8px",
+                          }}
                         />
                       ) : null}
+                      {accountsUnlinking.includes(a.id)
+                        ? "Unlinking"
+                        : "Unlink"}
+                      <LinkOff
+                        style={{
+                          position: "absolute",
+                          right: "6px",
+                          top: "8px",
+                        }}
+                      />
                     </button>
                   )}
                   {a.id === currentAccount?.id && (
@@ -179,6 +229,8 @@ function MenuContentAccounts(props: {
         setEmailAuthInProgress={setEmailAuthInProgress}
         emailAuthInProgress={emailAuthInProgress}
         currentAccount={currentAccount}
+        refreshAccounts={refreshAccounts}
+        setWalletAddress={setWalletAddress}
       />
     </div>
   );

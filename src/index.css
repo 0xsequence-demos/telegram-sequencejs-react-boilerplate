@@ -61,7 +61,7 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-button.pending {
+.pending {
   border-color: #1b2b5f;
   animation: pendingFade 0.5s;
   animation-iteration-count: infinite;
