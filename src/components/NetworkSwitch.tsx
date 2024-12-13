@@ -11,8 +11,8 @@ import { sequence } from "../sequence";
 import { networkImages } from "../utils/networkAssets";
 
 export function NetworkSwitch(props: {
-  network: Network | undefined;
-  setNetwork: Dispatch<SetStateAction<Network | undefined>>;
+  network: Network | null;
+  setNetwork: Dispatch<SetStateAction<Network | null>>;
 }) {
   const { network, setNetwork } = props;
 

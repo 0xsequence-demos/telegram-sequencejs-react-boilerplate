@@ -5,9 +5,9 @@ import { Dispatch, SetStateAction } from "react";
 import { Address } from "viem";
 
 function MenuContentInfo(props: {
-  network: Network | undefined;
-  setNetwork: Dispatch<SetStateAction<Network | undefined>>;
-  walletAddress?: Address;
+  network: Network | null;
+  setNetwork: Dispatch<SetStateAction<Network | null>>;
+  walletAddress: Address | null;
 }) {
   const { walletAddress, network, setNetwork } = props;
   return (
@@ -15,7 +15,7 @@ function MenuContentInfo(props: {
       <br />
       <h2>Sequence.js Telegram demo</h2>
       <h3 className="homepage__marginBtNormal">Embedded Wallet</h3>
-      {walletAddress && (
+      {walletAddress && network && (
         <ConnectedExtraTools
           network={network}
           setNetwork={setNetwork}
