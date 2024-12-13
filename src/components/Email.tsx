@@ -3,15 +3,23 @@ import { useEmailAuth } from "../hooks/useEmailAuth";
 import { randomName } from "../utils/randomName";
 import { Dispatch, SetStateAction, useEffect, useRef, useState } from "react";
 import { PINCodeInput } from "./PinCodeInput";
-import { EmailOutlined } from "@mui/icons-material";
+import { AddLink, EmailOutlined } from "@mui/icons-material";
 import { Account } from "@0xsequence/waas";
+import { Address } from "viem";
 
 export default function Email(props: {
   emailAuthInProgress: boolean;
   setEmailAuthInProgress: Dispatch<SetStateAction<boolean>>;
   currentAccount: Account | null;
+  refreshAccounts: () => void;
+  setWalletAddress: Dispatch<SetStateAction<`0x${string}` | null>>;
 }) {
-  const { setEmailAuthInProgress, currentAccount } = props;
+  const {
+    setEmailAuthInProgress,
+    currentAccount,
+    refreshAccounts,
+    setWalletAddress,
+  } = props;
 
   const [showEmailWarning, setEmailWarning] = useState(false);
   const [code, setCode] = useState<string[]>([]);
@@ -28,12 +36,26 @@ export default function Email(props: {
     sessionName: randomName(),
     onSuccess: async ({ wallet }) => {
       console.log(`Wallet address: ${wallet}`);
+      setEmailAuthInProgress(false);
+      refreshAccounts();
+      setWalletAddress(wallet as Address);
     },
     linkAccount: !!currentAccount,
   });
   useEffect(() => {
     setEmailAuthInProgress(emailAuthInProgress || emailAuthLoading);
   }, [emailAuthInProgress, emailAuthLoading]);
+
+  useEffect(() => {
+    if (sendChallengeAnswer) {
+      return;
+    }
+    setCode([]);
+    if (inputRef.current) {
+      inputRef.current.value = "";
+    }
+    setEmail("");
+  }, [sendChallengeAnswer]);
 
   return (
     <>
@@ -42,7 +64,7 @@ export default function Email(props: {
           <div
             style={{ width: "100%", display: "flex", flexDirection: "column" }}
           >
-            <Text marginTop="5" variant="normal" color="text80">
+            <Text marginBottom="5" variant="normal" color="text80">
               Enter code received in email.
             </Text>
             <div
@@ -61,7 +83,7 @@ export default function Email(props: {
                 disabled={code.includes("")}
                 onClick={() => sendChallengeAnswer(code.join(""))}
                 data-id="verifyButton"
-                style={{ flex: "0 0 150px" }}
+                style={{ flex: "0 0 150px", position: "relative" }}
               >
                 Verify
               </button>
@@ -103,9 +125,22 @@ export default function Email(props: {
               disabled={!isEmailValid}
               onClick={() => initiateEmailAuth(email)}
               data-id="continueButton"
-              style={{ flex: "0 0 150px" }}
+              style={{ flex: "0 0 150px", position: "relative" }}
             >
-              {currentAccount ? "Link Email" : "Login via Email"}
+              {currentAccount ? (
+                <>
+                  Link Email
+                  <AddLink
+                    style={{
+                      position: "absolute",
+                      right: "6px",
+                      top: "8px",
+                    }}
+                  />
+                </>
+              ) : (
+                "Login via Email"
+              )}
             </button>
           </>
         )}

@@ -27,7 +27,6 @@ const Home = () => {
 
   const removeAccount = async (id: string) => {
     setAccountChangesPending(true);
-    setAccounts([]);
     try {
       await sequence.removeAccount(id);
       const response = await sequence.listAccounts();
@@ -82,6 +81,10 @@ const Home = () => {
     });
   }, [walletAddress, emailAuthInProgress]);
 
+  function refreshAccounts() {
+    console.log("refresh!!");
+  }
+
   useEffect(() => {
     getGameEngine().game.party = !!walletAddress;
   }, [walletAddress]);
@@ -115,6 +118,7 @@ const Home = () => {
           setWalletAddress={setWalletAddress}
           loggingOut={loggingOut}
           setLoggingOut={setLoggingOut}
+          refreshAccounts={refreshAccounts}
         />
       </ToastProvider>
     </ThemeProvider>

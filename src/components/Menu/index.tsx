@@ -22,6 +22,7 @@ function Menu(props: {
   emailAuthInProgress: boolean;
   setEmailAuthInProgress: Dispatch<SetStateAction<boolean>>;
   loggingOut: boolean;
+  refreshAccounts: () => void;
   setLoggingOut: Dispatch<SetStateAction<boolean>>;
 }) {
   const {
@@ -41,6 +42,7 @@ function Menu(props: {
     loggingOut,
     setCurrentAccount,
     setLoggingOut,
+    refreshAccounts,
   } = props;
   const [open, setOpen] = useState(true);
   const [tab, setTab] = useState("accounts");
@@ -74,6 +76,7 @@ function Menu(props: {
           setCurrentAccount={setCurrentAccount}
           loggingOut={loggingOut}
           setLoggingOut={setLoggingOut}
+          refreshAccounts={refreshAccounts}
         />
       ) : null}
     </div>
