@@ -79,7 +79,8 @@ const Home = () => {
   }, [walletAddress]);
 
   useEffect(() => {
-    getGameEngine().game.party = !!walletAddress;
+    getGameEngine().game.party = true;
+    // getGameEngine().game.party = !!walletAddress;
   }, [walletAddress]);
 
   return (

@@ -1,5 +1,5 @@
 import { Memoizer } from "memoizer-ts";
-import { Mesh, Vector3 } from "three";
+import { BufferGeometry, Mesh, Vector3 } from "three";
 import { loadGLTF } from "../utils/loadGLTF";
 
 export async function createChamferedBoxGeometry(
@@ -14,6 +14,9 @@ export async function createChamferedBoxGeometry(
     throw new Error("child is not a mesh");
   }
   const geo = proto.geometry.clone();
+  if (!(geo instanceof BufferGeometry)) {
+    throw new Error("mesh geometry is unexpected type");
+  }
   const posArr = geo.attributes.position.array;
   const tempPos = new Vector3();
   const halfWidth = width * 0.5 - chamfer;
@@ -27,6 +30,8 @@ export async function createChamferedBoxGeometry(
     tempPos.z += halfDepth * Math.sign(tempPos.z);
     tempPos.toArray(posArr, i3);
   }
+  geo.computeBoundingBox();
+  geo.computeBoundingSphere();
   return geo;
 }
 
