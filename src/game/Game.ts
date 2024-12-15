@@ -18,6 +18,9 @@ import { loadGLTF } from "./utils/loadGLTF";
 import { Easing } from "./utils/easing";
 import { lerp } from "./utils/math";
 import { clamp } from "./clamp";
+import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
+import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
+import { randFloatSpread } from "three/src/math/MathUtils.js";
 
 const LIGHT_COLOR_SKY = 0xffffff;
 const LIGHT_COLOR_GROUND = 0xafafaf;
@@ -96,6 +99,11 @@ export default class Game {
     let walkSpeedX = 0;
     let walkSpeedY = 0;
     let angleTarget = 0;
+
+    const mapCache = new Map<string, Mesh>();
+    const mapReachTiles = 6;
+    const distPerTile = 10;
+    const mapReachDist = mapReachTiles * distPerTile;
 
     this.render = (renderer: WebGLRenderer) => {
       if (this.paused) {
@@ -191,6 +199,124 @@ export default class Game {
         (boom.position.z -
           (Math.sin(a + Math.PI) * -boomDist + charHolder.position.z)) *
         0.2;
+
+      const cx = Math.round(charHolder.position.x / distPerTile);
+      const cy = Math.round(charHolder.position.z / distPerTile);
+      for (let iy = cy - mapReachTiles; iy <= cy + mapReachTiles; iy++) {
+        for (let ix = cx - mapReachTiles; ix <= cx + mapReachTiles; ix++) {
+          const x = ix * distPerTile;
+          const y = iy * distPerTile;
+          const dx = charHolder.position.x - x;
+          const dy = charHolder.position.z - y;
+          const tileScale =
+            (mapReachDist - Math.sqrt(dx * dx + dy * dy)) / mapReachDist;
+          const key = `${x};${y}`;
+          const tileExists = mapCache.has(key);
+          if (!tileExists && tileScale > 0) {
+            const mesh = new Mesh(
+              getSharedPlaneGeometry(),
+              new MeshStandardMaterial({
+                color: new Color(
+                  0.3,
+                  lerp(((ix * 37 + iy * 19 + 9) % 10) / 10, 0.6, 0.8),
+                  0.2,
+                ),
+                roughness: 0.75,
+                metalness: 0,
+                emissive: 0x171e2c,
+              }),
+            );
+            getChamferedBoxGeometry(distPerTile, 2, distPerTile, 0.25).then(
+              (g) => (mesh.geometry = g),
+            );
+            if ((x * 37 + y * 19 + 9) % 41 === 0) {
+              getChamferedBoxGeometry(4, 2, 4, 0.5).then((g) => {
+                for (let i = 0; i < 5; i++) {
+                  const leaves = new Mesh(
+                    g,
+                    new MeshStandardMaterial({
+                      color: 0x17ae2c,
+                      roughness: 0.75,
+                      metalness: 0,
+                      emissive: 0x171e2c,
+                    }),
+                  );
+                  leaves.position.set(
+                    randFloatSpread(6),
+                    randFloatSpread(4) + 6,
+                    randFloatSpread(6),
+                  );
+                  leaves.rotation.set(
+                    randFloatSpread(1),
+                    randFloatSpread(1),
+                    randFloatSpread(1),
+                  );
+                  mesh.add(leaves);
+                }
+              });
+              getChamferedBoxGeometry(1, 6, 1, 0.25).then((g) => {
+                const leaves = new Mesh(
+                  g,
+                  new MeshStandardMaterial({
+                    color: 0x572e2c,
+                    roughness: 0.75,
+                    metalness: 0,
+                    emissive: 0x171e2c,
+                  }),
+                );
+                leaves.position.set(randFloatSpread(1), 4, randFloatSpread(1));
+                leaves.rotation.set(
+                  randFloatSpread(0.4),
+                  randFloatSpread(0.4),
+                  randFloatSpread(0.4),
+                );
+                mesh.add(leaves);
+              });
+            } else if ((x * 47 + y * 19 + 91) % 31 < 3) {
+              getChamferedBoxGeometry(2, 1, 2, 0.25).then((g) => {
+                const t = ((x * 17 + y * 9 + 21) % 5) + 2;
+                for (let i = 0; i < t; i++) {
+                  const rocks = new Mesh(
+                    g,
+                    new MeshStandardMaterial({
+                      color: 0x777e9c,
+                      roughness: 0.75,
+                      metalness: 0,
+                    }),
+                  );
+                  rocks.position.set(
+                    randFloatSpread(6),
+                    randFloatSpread(0.5) + 1,
+                    randFloatSpread(6),
+                  );
+                  rocks.rotation.set(
+                    randFloatSpread(1),
+                    randFloatSpread(1),
+                    randFloatSpread(1),
+                  );
+                  mesh.add(rocks);
+                }
+              });
+            }
+            mesh.position.set(x, -1, y);
+            mesh.rotation.set(
+              randFloatSpread(0.05),
+              randFloatSpread(0.05),
+              randFloatSpread(0.05),
+            );
+            mesh.scale.setScalar(0.001);
+            scene.add(mesh);
+            mapCache.set(key, mesh);
+          } else if (tileExists && tileScale <= 0) {
+            const m = mapCache.get(key)!;
+            scene.remove(m);
+            mapCache.delete(key);
+          } else if (tileExists) {
+            const m = mapCache.get(key)!;
+            m.scale.setScalar(1 - Math.pow(1 - tileScale, 3));
+          }
+        }
+      }
       // boom.rotation.x = boomRotationTargetX;
       // boom.position.z -= 0.1 * (boom.position.z - charHolder.position.z);
       // boom.position.x -= 0.1 * (boom.position.x - charHolder.position.x);
