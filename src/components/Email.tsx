@@ -8,48 +8,48 @@ import { Account } from "@0xsequence/waas";
 import { Address } from "viem";
 
 export default function Email(props: {
-  emailAuthInProgress: boolean;
-  setEmailAuthInProgress: Dispatch<SetStateAction<boolean>>;
   currentAccount: Account | null;
-  refreshAccounts: () => void;
+  refreshAccounts: () => Promise<void>;
+  setAccountChangesPending: Dispatch<SetStateAction<boolean>>;
   setWalletAddress: Dispatch<SetStateAction<`0x${string}` | null>>;
 }) {
   const {
-    setEmailAuthInProgress,
     currentAccount,
     refreshAccounts,
     setWalletAddress,
+    setAccountChangesPending,
   } = props;
 
   const [showEmailWarning, setEmailWarning] = useState(false);
   const [code, setCode] = useState<string[]>([]);
   const [email, setEmail] = useState("");
+  const [busy, setBusy] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const isEmailValid = inputRef.current?.validity.valid;
+  const [showCodeUI, setShowCodeUI] = useState(false);
 
   const {
-    inProgress: emailAuthInProgress,
-    loading: emailAuthLoading,
+    // inProgress: emailAuthInProgress,
+    // loading: emailAuthLoading,
     initiateAuth: initiateEmailAuth,
     sendChallengeAnswer,
   } = useEmailAuth({
     sessionName: randomName(),
     onSuccess: async ({ wallet }) => {
       console.log(`Wallet address: ${wallet}`);
-      setEmailAuthInProgress(false);
-      refreshAccounts();
-      setWalletAddress(wallet as Address);
+      refreshAccounts().then(() => {
+        setWalletAddress(wallet as Address);
+        setShowCodeUI(false);
+      });
     },
     linkAccount: !!currentAccount,
   });
-  useEffect(() => {
-    setEmailAuthInProgress(emailAuthInProgress || emailAuthLoading);
-  }, [emailAuthInProgress, emailAuthLoading]);
 
   useEffect(() => {
     if (sendChallengeAnswer) {
       return;
     }
+    setBusy(false);
     setCode([]);
     if (inputRef.current) {
       inputRef.current.value = "";
@@ -57,10 +57,24 @@ export default function Email(props: {
     setEmail("");
   }, [sendChallengeAnswer]);
 
+  useEffect(() => {
+    if (!sendChallengeAnswer) {
+      return;
+    }
+    setShowCodeUI(true);
+  }, [sendChallengeAnswer]);
+
   return (
     <>
-      <div style={{ width: "100%", display: "flex", flexDirection: "row" }}>
-        {sendChallengeAnswer ? (
+      <div
+        style={{
+          width: "100%",
+          display: "flex",
+          flexDirection: "row",
+          opacity: busy ? "60%" : "100%",
+        }}
+      >
+        {showCodeUI ? (
           <div
             style={{ width: "100%", display: "flex", flexDirection: "column" }}
           >
@@ -81,11 +95,19 @@ export default function Email(props: {
               </div>
               <button
                 disabled={code.includes("")}
-                onClick={() => sendChallengeAnswer(code.join(""))}
+                onClick={() => {
+                  if (sendChallengeAnswer) {
+                    setAccountChangesPending(true);
+                    setBusy(true);
+                    sendChallengeAnswer(code.join("")).then(() =>
+                      setBusy(false),
+                    );
+                  }
+                }}
                 data-id="verifyButton"
                 style={{ flex: "0 0 150px", position: "relative" }}
               >
-                Verify
+                {busy ? "Verifying..." : "Verify"}
               </button>
             </div>
           </div>
@@ -145,7 +167,6 @@ export default function Email(props: {
           </>
         )}
       </div>
-
       {showEmailWarning && (
         <Text as="p" variant="small" color="negative" marginY="2">
           Invalid email address

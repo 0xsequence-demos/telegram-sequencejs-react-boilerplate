@@ -20,24 +20,32 @@ const Home = () => {
   const [walletAddress, setWalletAddress] = useState<Address | null>(null);
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [emailAuthInProgress, setEmailAuthInProgress] = useState(false);
   const [accountChangesPending, setAccountChangesPending] = useState(false);
   const [accountError, setAccountError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  async function refreshAccounts() {
+    setAccountChangesPending(true);
+    const response = await sequence.listAccounts();
+    setAccountChangesPending(false);
+    setAccounts(response.accounts);
+    if (response.currentAccountId) {
+      setCurrentAccount(
+        response.accounts.find(
+          (account) => account.id === response.currentAccountId,
+        ) || null,
+      );
+    }
+  }
 
   const removeAccount = async (id: string) => {
     setAccountChangesPending(true);
     try {
       await sequence.removeAccount(id);
-      const response = await sequence.listAccounts();
-      setAccounts(response.accounts);
     } catch (e: unknown) {
       setAccountError(getMessageFromUnknownError(e));
-      const response = await sequence.listAccounts();
-      setAccounts(response.accounts);
     }
-
-    setAccountChangesPending(false);
+    refreshAccounts();
   };
 
   useEffect(() => {
@@ -67,31 +75,12 @@ const Home = () => {
     if (!walletAddress) {
       return;
     }
-    setAccountChangesPending(true);
-    sequence.listAccounts().then((response) => {
-      setAccountChangesPending(false);
-      setAccounts(response.accounts);
-      if (response.currentAccountId) {
-        setCurrentAccount(
-          response.accounts.find(
-            (account) => account.id === response.currentAccountId,
-          ) || null,
-        );
-      }
-    });
-  }, [walletAddress, emailAuthInProgress]);
-
-  function refreshAccounts() {
-    console.log("refresh!!");
-  }
+    refreshAccounts();
+  }, [walletAddress]);
 
   useEffect(() => {
     getGameEngine().game.party = !!walletAddress;
   }, [walletAddress]);
-
-  useEffect(() => {
-    console.log("currentAccount", currentAccount);
-  }, [currentAccount]);
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -112,8 +101,6 @@ const Home = () => {
           setAccountChangesPending={setAccountChangesPending}
           accountError={accountError}
           removeAccount={removeAccount}
-          emailAuthInProgress={emailAuthInProgress}
-          setEmailAuthInProgress={setEmailAuthInProgress}
           setCurrentAccount={setCurrentAccount}
           setWalletAddress={setWalletAddress}
           loggingOut={loggingOut}
