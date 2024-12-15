@@ -130,75 +130,77 @@ export default class Game {
       const d = dp.clone().sub(dc);
       const a = Math.atan2(d.z, d.x);
 
-      let y = false;
-      if (keysDown.get("KeyW") || keysDown.get("ArrowUp")) {
-        walkSpeedY = clamp(
-          Math.max(0, walkSpeedY + walkSpeedDelta),
-          -walkSpeed,
-          walkSpeed,
-        );
-        y = true;
+      if (partyAnim > 0) {
+        let y = false;
+        if (keysDown.get("KeyW") || keysDown.get("ArrowUp")) {
+          walkSpeedY = clamp(
+            Math.max(0, walkSpeedY + walkSpeedDelta),
+            -walkSpeed,
+            walkSpeed,
+          );
+          y = true;
+        }
+        if (keysDown.get("KeyS") || keysDown.get("ArrowDown")) {
+          walkSpeedY = clamp(
+            Math.min(0, walkSpeedY - walkSpeedDelta),
+            -walkSpeed,
+            walkSpeed,
+          );
+          y = true;
+        }
+        if (!y) {
+          const sign = Math.sign(walkSpeedY);
+          const mag = Math.abs(walkSpeedY);
+          walkSpeedY = Math.max(0, mag - walkSpeedDelta) * sign;
+        }
+        let x = false;
+        if (keysDown.get("KeyA") || keysDown.get("ArrowLeft")) {
+          walkSpeedX = clamp(
+            Math.min(0, walkSpeedX - walkSpeedDelta),
+            -walkSpeed,
+            walkSpeed,
+          );
+          x = true;
+        }
+        if (keysDown.get("KeyD") || keysDown.get("ArrowRight")) {
+          walkSpeedX = clamp(
+            Math.max(0, walkSpeedX + walkSpeedDelta),
+            -walkSpeed,
+            walkSpeed,
+          );
+          x = true;
+        }
+        if (!x) {
+          const sign = Math.sign(walkSpeedX);
+          const mag = Math.abs(walkSpeedX);
+          walkSpeedX = Math.max(0, mag - walkSpeedDelta) * sign;
+        }
+        const charMove = charHolder.position.clone();
+        charHolder.position.x -= Math.cos(a + Math.PI * 0.5) * walkSpeedX;
+        charHolder.position.z -= Math.sin(a + Math.PI * 0.5) * walkSpeedX;
+        charHolder.position.x -= Math.cos(a) * walkSpeedY;
+        charHolder.position.z -= Math.sin(a) * walkSpeedY;
+        charMove.sub(charHolder.position);
+        if (charMove.length() > 0.01) {
+          angleTarget = Math.atan2(-charMove.z, charMove.x) + Math.PI * 0.5;
+        }
+        let ad = charHolder.rotation.y - angleTarget;
+        if (ad > Math.PI) {
+          ad -= Math.PI * 2;
+        } else if (ad < -Math.PI) {
+          ad += Math.PI * 2;
+        }
+        charHolder.rotation.y -= ad * 0.5;
+        boom.rotation.y = -a - Math.PI * 0.5;
+        boom.position.x -=
+          (boom.position.x -
+            (Math.cos(a + Math.PI) * -boomDist + charHolder.position.x)) *
+          0.2;
+        boom.position.z -=
+          (boom.position.z -
+            (Math.sin(a + Math.PI) * -boomDist + charHolder.position.z)) *
+          0.2;
       }
-      if (keysDown.get("KeyS") || keysDown.get("ArrowDown")) {
-        walkSpeedY = clamp(
-          Math.min(0, walkSpeedY - walkSpeedDelta),
-          -walkSpeed,
-          walkSpeed,
-        );
-        y = true;
-      }
-      if (!y) {
-        const sign = Math.sign(walkSpeedY);
-        const mag = Math.abs(walkSpeedY);
-        walkSpeedY = Math.max(0, mag - walkSpeedDelta) * sign;
-      }
-      let x = false;
-      if (keysDown.get("KeyA") || keysDown.get("ArrowLeft")) {
-        walkSpeedX = clamp(
-          Math.min(0, walkSpeedX - walkSpeedDelta),
-          -walkSpeed,
-          walkSpeed,
-        );
-        x = true;
-      }
-      if (keysDown.get("KeyD") || keysDown.get("ArrowRight")) {
-        walkSpeedX = clamp(
-          Math.max(0, walkSpeedX + walkSpeedDelta),
-          -walkSpeed,
-          walkSpeed,
-        );
-        x = true;
-      }
-      if (!x) {
-        const sign = Math.sign(walkSpeedX);
-        const mag = Math.abs(walkSpeedX);
-        walkSpeedX = Math.max(0, mag - walkSpeedDelta) * sign;
-      }
-      const charMove = charHolder.position.clone();
-      charHolder.position.x -= Math.cos(a + Math.PI * 0.5) * walkSpeedX;
-      charHolder.position.z -= Math.sin(a + Math.PI * 0.5) * walkSpeedX;
-      charHolder.position.x -= Math.cos(a) * walkSpeedY;
-      charHolder.position.z -= Math.sin(a) * walkSpeedY;
-      charMove.sub(charHolder.position);
-      if (charMove.length() > 0.01) {
-        angleTarget = Math.atan2(-charMove.z, charMove.x) + Math.PI * 0.5;
-      }
-      let ad = charHolder.rotation.y - angleTarget;
-      if (ad > Math.PI) {
-        ad -= Math.PI * 2;
-      } else if (ad < -Math.PI) {
-        ad += Math.PI * 2;
-      }
-      charHolder.rotation.y -= ad * 0.5;
-      boom.rotation.y = -a - Math.PI * 0.5;
-      boom.position.x -=
-        (boom.position.x -
-          (Math.cos(a + Math.PI) * -boomDist + charHolder.position.x)) *
-        0.2;
-      boom.position.z -=
-        (boom.position.z -
-          (Math.sin(a + Math.PI) * -boomDist + charHolder.position.z)) *
-        0.2;
 
       const cx = Math.round(charHolder.position.x / distPerTile);
       const cy = Math.round(charHolder.position.z / distPerTile);
@@ -313,7 +315,7 @@ export default class Game {
             mapCache.delete(key);
           } else if (tileExists) {
             const m = mapCache.get(key)!;
-            m.scale.setScalar(1 - Math.pow(1 - tileScale, 3));
+            m.scale.setScalar(partyAnim * (1 - Math.pow(1 - tileScale, 3)));
           }
         }
       }
