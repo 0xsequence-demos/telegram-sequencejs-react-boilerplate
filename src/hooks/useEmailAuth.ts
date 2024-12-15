@@ -71,6 +71,8 @@ export function useEmailAuth({
             description: "This account is already linked to another wallet",
             variant: "error",
           });
+        } else {
+          throw new Error("wtf");
         }
       }
       setLoading(false);
@@ -78,7 +80,14 @@ export function useEmailAuth({
       return;
     }
     if (respondWithCode) {
-      await respondWithCode(answer);
+      await respondWithCode(answer).catch((e) => {
+        toast({
+          title: "Code Incorrect",
+          description: "The code you entered is not correct. Please try again.",
+          variant: "error",
+        });
+        console.log(e);
+      });
     }
   };
 

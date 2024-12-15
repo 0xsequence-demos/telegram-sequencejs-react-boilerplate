@@ -26,11 +26,9 @@ function MenuContentAccounts(props: {
   accountError: string | null;
   accountChangesPending: boolean;
   setAccountChangesPending: Dispatch<SetStateAction<boolean>>;
-  emailAuthInProgress: boolean;
-  setEmailAuthInProgress: Dispatch<SetStateAction<boolean>>;
   removeAccount: (id: string) => Promise<void>;
   loggingOut: boolean;
-  refreshAccounts: () => void;
+  refreshAccounts: () => Promise<void>;
   setLoggingOut: Dispatch<SetStateAction<boolean>>;
 }) {
   const {
@@ -41,13 +39,11 @@ function MenuContentAccounts(props: {
     accountError,
     removeAccount,
     accountChangesPending,
-    emailAuthInProgress,
-    setEmailAuthInProgress,
+    setAccountChangesPending,
     loggingOut,
     setLoggingOut,
     setCurrentAccount,
     setWalletAddress,
-    setAccountChangesPending,
     refreshAccounts,
   } = props;
 
@@ -56,7 +52,7 @@ function MenuContentAccounts(props: {
   return (
     <div className="settingsMenuContent scroller">
       <h3>
-        <Wallet />
+        <Wallet style={{ transform: "translateY(6px)" }} />{" "}
         {walletAddress || "Log in for wallet address"}
       </h3>
       <br />
@@ -134,7 +130,7 @@ function MenuContentAccounts(props: {
         </Box>
       )}
       <Box marginBottom="5" flexDirection="column">
-        {accounts.length === 0 && !emailAuthInProgress && (
+        {accounts.length === 0 && (
           <button
             className={loggingOut ? "pending" : ""}
             onClick={() => {
@@ -226,11 +222,10 @@ function MenuContentAccounts(props: {
         )}
       </Box>
       <Email
-        setEmailAuthInProgress={setEmailAuthInProgress}
-        emailAuthInProgress={emailAuthInProgress}
         currentAccount={currentAccount}
         refreshAccounts={refreshAccounts}
         setWalletAddress={setWalletAddress}
+        setAccountChangesPending={setAccountChangesPending}
       />
     </div>
   );

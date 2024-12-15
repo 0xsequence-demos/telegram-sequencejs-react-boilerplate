@@ -20,12 +20,10 @@ function MenuContent(props: {
   accountChangesPending: boolean;
   setAccountChangesPending: Dispatch<SetStateAction<boolean>>;
   removeAccount: (id: string) => Promise<void>;
-  emailAuthInProgress: boolean;
-  setEmailAuthInProgress: Dispatch<SetStateAction<boolean>>;
   tab: string;
   setTab: Dispatch<SetStateAction<string>>;
   loggingOut: boolean;
-  refreshAccounts: () => void;
+  refreshAccounts: () => Promise<void>;
   setLoggingOut: Dispatch<SetStateAction<boolean>>;
 }) {
   const {
@@ -41,8 +39,6 @@ function MenuContent(props: {
     setAccounts,
     currentAccount,
     removeAccount,
-    emailAuthInProgress,
-    setEmailAuthInProgress,
     loggingOut,
     setCurrentAccount,
     setLoggingOut,
@@ -91,8 +87,6 @@ function MenuContent(props: {
           accountChangesPending={accountChangesPending}
           setAccountChangesPending={setAccountChangesPending}
           removeAccount={removeAccount}
-          emailAuthInProgress={emailAuthInProgress}
-          setEmailAuthInProgress={setEmailAuthInProgress}
           setWalletAddress={setWalletAddress}
           setCurrentAccount={setCurrentAccount}
           loggingOut={loggingOut}
