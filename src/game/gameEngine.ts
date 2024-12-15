@@ -69,9 +69,12 @@ export function getGameEngine() {
 
     if (import.meta.hot) {
       import.meta.hot.accept("./Game", (mod) => {
+        const oldGame = game;
         game.cleanup();
         game = new mod!.default();
         _gameEngine.game = game;
+        game.party = oldGame.party;
+        game.partyFloat.value = oldGame.partyFloat.value;
       });
     }
     gameEngine = _gameEngine;
