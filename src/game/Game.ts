@@ -1,5 +1,8 @@
 import {
+  CameraHelper,
   Color,
+  DirectionalLight,
+  DirectionalLightHelper,
   HemisphereLight,
   Mesh,
   MeshStandardMaterial,
@@ -7,7 +10,6 @@ import {
   PerspectiveCamera,
   PlaneGeometry,
   Scene,
-  SpotLight,
   Vector3,
   WebGLRenderer,
 } from "three";
@@ -16,14 +18,23 @@ import makeSequenceLogo from "./makeSequenceLogo";
 import AnimatedNumber from "./utils/AnimatedNumber";
 import { loadGLTF } from "./utils/loadGLTF";
 import { Easing } from "./utils/easing";
-import { lerp } from "./utils/math";
+import { lerp, wrapRange } from "./utils/math";
 import { clamp } from "./clamp";
 import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
 import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
 import { randFloatSpread } from "three/src/math/MathUtils.js";
+import { searchParams } from "./character/searchParams";
+
+const debug = searchParams.has("debug");
 
 const LIGHT_COLOR_SKY = 0xffffff;
 const LIGHT_COLOR_GROUND = 0xafafaf;
+
+const sunDist = 50;
+
+const mapReachTiles = 6;
+const distPerTile = 10;
+const mapReachDist = mapReachTiles * distPerTile;
 
 const __tempColor = new Color();
 const __tempColor2 = new Color();
@@ -46,17 +57,32 @@ export default class Game {
       LIGHT_COLOR_GROUND,
       2,
     );
-    const lightDirect = new SpotLight(0xffffff, 200, 20, Math.PI / 12);
-    lightDirect.castShadow = true;
-    lightDirect.shadow.mapSize.setScalar(1024);
-    lightDirect.shadow.autoUpdate = true;
-    lightDirect.shadow.bias = -0.0005;
+    const sun = new DirectionalLight(0xffffff, 2);
+    sun.castShadow = true;
+    sun.shadow.camera.far = sunDist * 2;
+    if (debug) {
+      const dlh = new DirectionalLightHelper(sun);
+      const dlh2 = new CameraHelper(sun.shadow.camera);
+      scene.add(dlh);
+      scene.add(dlh2);
+    }
+    const d = mapReachDist * 0.5;
+    sun.shadow.camera.left = -d;
+    sun.shadow.camera.right = d;
+    sun.shadow.camera.top = -d;
+    sun.shadow.camera.bottom = d;
+    sun.shadow.mapSize.setScalar(1024);
+    sun.shadow.autoUpdate = true;
+    sun.shadow.bias = -0.0005;
+    scene.add(sun.target);
     scene.add(lightAmbient);
-    scene.add(lightDirect);
+    scene.add(sun);
+    const logoHolder = new Object3D();
+    scene.add(logoHolder);
     makeSequenceLogo().then((logo) => {
       logo.position.set(0, -1.9, -2);
       logo.scale.multiplyScalar(5);
-      scene.add(logo);
+      logoHolder.add(logo);
     });
     const floor = new Mesh(
       new PlaneGeometry(10, 10),
@@ -66,8 +92,8 @@ export default class Game {
     floor.position.y = 0.1;
     floor.rotation.x = Math.PI * -0.5;
     // scene.add(floor);
-    lightDirect.position.set(7, 7, -7);
-    lightDirect.lookAt(new Vector3(0, 0, 0));
+    sun.position.set(sunDist, sunDist, 0);
+    sun.lookAt(new Vector3(0, 0, 0));
     const charHolder = new Object3D();
     scene.add(charHolder);
     loadGLTF("quinn-the-bot.glb").then((gltf) => {
@@ -101,9 +127,6 @@ export default class Game {
     let angleTarget = 0;
 
     const mapCache = new Map<string, Mesh>();
-    const mapReachTiles = 6;
-    const distPerTile = 10;
-    const mapReachDist = mapReachTiles * distPerTile;
 
     this.render = (renderer: WebGLRenderer) => {
       if (this.paused) {
@@ -130,7 +153,7 @@ export default class Game {
       const d = dp.clone().sub(dc);
       const a = Math.atan2(d.z, d.x);
 
-      if (partyAnim > 0) {
+      if (partyAnim > 0.25) {
         let y = false;
         if (keysDown.get("KeyW") || keysDown.get("ArrowUp")) {
           walkSpeedY = clamp(
@@ -202,6 +225,9 @@ export default class Game {
           0.2;
       }
 
+      sun.position.set(sunDist, sunDist, 0).add(charHolder.position);
+      sun.target.position.copy(charHolder.position);
+
       const cx = Math.round(charHolder.position.x / distPerTile);
       const cy = Math.round(charHolder.position.z / distPerTile);
       for (let iy = cy - mapReachTiles; iy <= cy + mapReachTiles; iy++) {
@@ -228,10 +254,11 @@ export default class Game {
                 emissive: 0x171e2c,
               }),
             );
+            mesh.receiveShadow = true;
             getChamferedBoxGeometry(distPerTile, 2, distPerTile, 0.25).then(
               (g) => (mesh.geometry = g),
             );
-            if ((x * 37 + y * 19 + 9) % 41 === 0) {
+            if ((ix * 37 + iy * 19 + 19) % wrapRange(ix + iy, 11, 21) === 0) {
               getChamferedBoxGeometry(4, 2, 4, 0.5).then((g) => {
                 for (let i = 0; i < 5; i++) {
                   const leaves = new Mesh(
@@ -254,10 +281,12 @@ export default class Game {
                     randFloatSpread(1),
                   );
                   mesh.add(leaves);
+                  leaves.receiveShadow = true;
+                  leaves.castShadow = true;
                 }
               });
               getChamferedBoxGeometry(1, 6, 1, 0.25).then((g) => {
-                const leaves = new Mesh(
+                const trunk = new Mesh(
                   g,
                   new MeshStandardMaterial({
                     color: 0x572e2c,
@@ -266,19 +295,24 @@ export default class Game {
                     emissive: 0x171e2c,
                   }),
                 );
-                leaves.position.set(randFloatSpread(1), 4, randFloatSpread(1));
-                leaves.rotation.set(
+                trunk.position.set(randFloatSpread(1), 4, randFloatSpread(1));
+                trunk.rotation.set(
                   randFloatSpread(0.4),
                   randFloatSpread(0.4),
                   randFloatSpread(0.4),
                 );
-                mesh.add(leaves);
+                mesh.add(trunk);
+                trunk.receiveShadow = true;
+                trunk.castShadow = true;
               });
-            } else if ((x * 47 + y * 19 + 91) % 31 < 3) {
+            } else if (
+              (ix * 47 + iy * 19 + 91) % wrapRange(ix + iy, 24, 31) <
+              3
+            ) {
               getChamferedBoxGeometry(2, 1, 2, 0.25).then((g) => {
                 const t = ((x * 17 + y * 9 + 21) % 5) + 2;
                 for (let i = 0; i < t; i++) {
-                  const rocks = new Mesh(
+                  const rock = new Mesh(
                     g,
                     new MeshStandardMaterial({
                       color: 0x777e9c,
@@ -286,17 +320,19 @@ export default class Game {
                       metalness: 0,
                     }),
                   );
-                  rocks.position.set(
+                  rock.position.set(
                     randFloatSpread(6),
                     randFloatSpread(0.5) + 1,
                     randFloatSpread(6),
                   );
-                  rocks.rotation.set(
+                  rock.rotation.set(
                     randFloatSpread(1),
                     randFloatSpread(1),
                     randFloatSpread(1),
                   );
-                  mesh.add(rocks);
+                  rock.receiveShadow = true;
+                  rock.castShadow = true;
+                  mesh.add(rock);
                 }
               });
             }
@@ -319,9 +355,6 @@ export default class Game {
           }
         }
       }
-      // boom.rotation.x = boomRotationTargetX;
-      // boom.position.z -= 0.1 * (boom.position.z - charHolder.position.z);
-      // boom.position.x -= 0.1 * (boom.position.x - charHolder.position.x);
       if (partyAnim > 0.001) {
         __tempColor.setHSL(time * 0.5, 0.5, 0.75);
         lightAmbient.color.lerp(__tempColor, partyAnim);
@@ -329,6 +362,15 @@ export default class Game {
         lightAmbient.groundColor.lerp(__tempColor2, partyAnim);
       }
       __tempColor.set(0x3f3f3f).lerp(__tempColor2, partyAnim);
+
+      logoHolder.scale.setScalar(1 - partyAnim);
+      logoHolder.position.set(
+        charHolder.position.x,
+        -partyAnim,
+        charHolder.position.z,
+      );
+      logoHolder.visible = partyAnim < 0.995;
+
       renderer.setClearColor(__tempColor.getHex());
       renderer.render(scene, camera);
     };
