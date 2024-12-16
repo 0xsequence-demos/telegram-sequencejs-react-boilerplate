@@ -75,6 +75,11 @@ export function getGameEngine() {
         _gameEngine.game = game;
         game.party = oldGame.party;
         game.partyFloat.value = oldGame.partyFloat.value;
+        game.charHolder.position.copy(oldGame.charHolder.position);
+        game.charHolder.rotation.copy(oldGame.charHolder.rotation);
+        game.camHolder.position.copy(oldGame.camHolder.position);
+        game.camHolder.rotation.copy(oldGame.camHolder.rotation);
+        game.camera.position.copy(oldGame.camera.position);
       });
     }
     gameEngine = _gameEngine;

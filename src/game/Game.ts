@@ -18,23 +18,16 @@ import makeSequenceLogo from "./makeSequenceLogo";
 import AnimatedNumber from "./utils/AnimatedNumber";
 import { loadGLTF } from "./utils/loadGLTF";
 import { Easing } from "./utils/easing";
-import { lerp, wrapRange } from "./utils/math";
+import { lerp } from "./utils/math";
 import { clamp } from "./clamp";
-import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
-import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
-import { randFloatSpread } from "three/src/math/MathUtils.js";
 import { searchParams } from "./character/searchParams";
+import { makeTile } from "./makeTile";
+import { distPerTile, mapReachDist, mapReachTiles, sunDist } from "./constants";
 
 const debug = searchParams.has("debug");
 
 const LIGHT_COLOR_SKY = 0xffffff;
 const LIGHT_COLOR_GROUND = 0xafafaf;
-
-const sunDist = 50;
-
-const mapReachTiles = 6;
-const distPerTile = 10;
-const mapReachDist = mapReachTiles * distPerTile;
 
 const __tempColor = new Color();
 const __tempColor2 = new Color();
@@ -43,6 +36,9 @@ export default class Game {
   party: boolean = false;
   character: Character | undefined;
   partyFloat = new AnimatedNumber(0, 0.01);
+  charHolder: Object3D;
+  camera: PerspectiveCamera;
+  camHolder: Object3D;
 
   constructor() {
     const scene = new Scene();
@@ -57,6 +53,7 @@ export default class Game {
       LIGHT_COLOR_GROUND,
       2,
     );
+    this.camera = camera;
     const sun = new DirectionalLight(0xffffff, 2);
     sun.castShadow = true;
     sun.shadow.camera.far = sunDist * 2;
@@ -96,6 +93,7 @@ export default class Game {
     sun.lookAt(new Vector3(0, 0, 0));
     const charHolder = new Object3D();
     scene.add(charHolder);
+    this.charHolder = charHolder;
     loadGLTF("quinn-the-bot.glb").then((gltf) => {
       gltf.scene.traverse((n) => {
         n.receiveShadow = true;
@@ -104,20 +102,21 @@ export default class Game {
       this.character = new Character(gltf.scene, charHolder);
     });
 
-    const boom = new Object3D();
+    const camHolder = new Object3D();
+    this.camHolder = camHolder;
     const boomVirtualPivot = new Object3D();
-    boom.add(boomVirtualPivot);
-    boom.rotation.order = "YXZ";
-    scene.add(boom);
+    camHolder.add(boomVirtualPivot);
+    camHolder.rotation.order = "YXZ";
+    scene.add(camHolder);
     camera.position.z = 0;
     boomVirtualPivot.position.z = 0;
     const boomDist = 8;
     const camDist = 10;
-    boom.position.z = -boomDist;
-    boom.position.y = 1.75;
+    camHolder.position.z = -boomDist;
+    camHolder.position.y = 1.75;
     camera.rotateY(Math.PI);
     camera.position.z = -camDist;
-    boom.add(camera);
+    camHolder.add(camera);
     let lastTime = performance.now() * 0.001;
     const keysDown = new Map<string, boolean>();
     const walkSpeed = 0.5;
@@ -148,12 +147,12 @@ export default class Game {
       camera.position.y = lerp(0, 6, partyAnim);
       const dp = boomVirtualPivot.position
         .clone()
-        .applyMatrix4(boom.matrixWorld);
+        .applyMatrix4(camHolder.matrixWorld);
       const dc = charHolder.position.clone();
       const d = dp.clone().sub(dc);
       const a = Math.atan2(d.z, d.x);
 
-      if (partyAnim > 0.25) {
+      if (partyAnim > 0.25 && !this.paused) {
         let y = false;
         if (keysDown.get("KeyW") || keysDown.get("ArrowUp")) {
           walkSpeedY = clamp(
@@ -214,13 +213,13 @@ export default class Game {
           ad += Math.PI * 2;
         }
         charHolder.rotation.y -= ad * 0.5;
-        boom.rotation.y = -a - Math.PI * 0.5;
-        boom.position.x -=
-          (boom.position.x -
+        camHolder.rotation.y = -a - Math.PI * 0.5;
+        camHolder.position.x -=
+          (camHolder.position.x -
             (Math.cos(a + Math.PI) * -boomDist + charHolder.position.x)) *
           0.2;
-        boom.position.z -=
-          (boom.position.z -
+        camHolder.position.z -=
+          (camHolder.position.z -
             (Math.sin(a + Math.PI) * -boomDist + charHolder.position.z)) *
           0.2;
       }
@@ -241,108 +240,7 @@ export default class Game {
           const key = `${x};${y}`;
           const tileExists = mapCache.has(key);
           if (!tileExists && tileScale > 0) {
-            const mesh = new Mesh(
-              getSharedPlaneGeometry(),
-              new MeshStandardMaterial({
-                color: new Color(
-                  0.3,
-                  lerp(((ix * 37 + iy * 19 + 9) % 10) / 10, 0.6, 0.8),
-                  0.2,
-                ),
-                roughness: 0.75,
-                metalness: 0,
-                emissive: 0x171e2c,
-              }),
-            );
-            mesh.receiveShadow = true;
-            getChamferedBoxGeometry(distPerTile, 2, distPerTile, 0.25).then(
-              (g) => (mesh.geometry = g),
-            );
-            if ((ix * 37 + iy * 19 + 19) % wrapRange(ix + iy, 11, 21) === 0) {
-              getChamferedBoxGeometry(4, 2, 4, 0.5).then((g) => {
-                for (let i = 0; i < 5; i++) {
-                  const leaves = new Mesh(
-                    g,
-                    new MeshStandardMaterial({
-                      color: 0x17ae2c,
-                      roughness: 0.75,
-                      metalness: 0,
-                      emissive: 0x171e2c,
-                    }),
-                  );
-                  leaves.position.set(
-                    randFloatSpread(6),
-                    randFloatSpread(4) + 6,
-                    randFloatSpread(6),
-                  );
-                  leaves.rotation.set(
-                    randFloatSpread(1),
-                    randFloatSpread(1),
-                    randFloatSpread(1),
-                  );
-                  mesh.add(leaves);
-                  leaves.receiveShadow = true;
-                  leaves.castShadow = true;
-                }
-              });
-              getChamferedBoxGeometry(1, 6, 1, 0.25).then((g) => {
-                const trunk = new Mesh(
-                  g,
-                  new MeshStandardMaterial({
-                    color: 0x572e2c,
-                    roughness: 0.75,
-                    metalness: 0,
-                    emissive: 0x171e2c,
-                  }),
-                );
-                trunk.position.set(randFloatSpread(1), 4, randFloatSpread(1));
-                trunk.rotation.set(
-                  randFloatSpread(0.4),
-                  randFloatSpread(0.4),
-                  randFloatSpread(0.4),
-                );
-                mesh.add(trunk);
-                trunk.receiveShadow = true;
-                trunk.castShadow = true;
-              });
-            } else if (
-              (ix * 47 + iy * 19 + 91) % wrapRange(ix + iy, 24, 31) <
-              3
-            ) {
-              getChamferedBoxGeometry(2, 1, 2, 0.25).then((g) => {
-                const t = ((x * 17 + y * 9 + 21) % 5) + 2;
-                for (let i = 0; i < t; i++) {
-                  const rock = new Mesh(
-                    g,
-                    new MeshStandardMaterial({
-                      color: 0x777e9c,
-                      roughness: 0.75,
-                      metalness: 0,
-                    }),
-                  );
-                  rock.position.set(
-                    randFloatSpread(6),
-                    randFloatSpread(0.5) + 1,
-                    randFloatSpread(6),
-                  );
-                  rock.rotation.set(
-                    randFloatSpread(1),
-                    randFloatSpread(1),
-                    randFloatSpread(1),
-                  );
-                  rock.receiveShadow = true;
-                  rock.castShadow = true;
-                  mesh.add(rock);
-                }
-              });
-            }
-            mesh.position.set(x, -1, y);
-            mesh.rotation.set(
-              randFloatSpread(0.05),
-              randFloatSpread(0.05),
-              randFloatSpread(0.05),
-            );
-            mesh.scale.setScalar(0.001);
+            const mesh = makeTile(ix, iy);
             scene.add(mesh);
             mapCache.set(key, mesh);
           } else if (tileExists && tileScale <= 0) {
