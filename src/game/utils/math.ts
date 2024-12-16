@@ -32,3 +32,12 @@ const TAU = Math.PI * 0.5;
 export function cos(val: number, snappiness = 1) {
   return sin(val + TAU, snappiness);
 }
+
+export function wrapRange(val: number, min: number, max: number) {
+  const v1 = val - min;
+  const r = max - min;
+  const result = (((v1 % r) + r) % r) + min;
+  return result;
+}
+// console.log(wrapRange(-0.5, 1, 3));
+// console.log(wrapRange(2.95, 1, 3));

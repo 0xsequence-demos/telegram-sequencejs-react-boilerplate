@@ -75,9 +75,13 @@ export default class Character {
       }
     }
   }
-  lastTime = 0;
+  lastTime: number | undefined = undefined;
   update(time: number) {
+    if (this.lastTime === undefined) {
+      this.lastTime = time;
+    }
     this.happiness.update(time - this.lastTime);
+    this.lastTime = time;
     this.lastTime = time;
     const danceTime = time * (1.8 / 2);
     const danceBasic = charactetAnimations.danceBasic;

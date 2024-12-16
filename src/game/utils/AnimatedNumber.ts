@@ -7,10 +7,9 @@ export default class AnimatedNumber {
     this.target = value;
   }
   update(timeDelta: number) {
-    const deltaV =
-      (this.value - this.target) * this.speedLimit * timeDelta * 60;
-    const deltaS = Math.sign(deltaV);
-    const boundDeltaV = Math.min(this.speedLimit, Math.abs(deltaV)) * deltaS;
-    this.value -= boundDeltaV;
+    const delta = this.target - this.value;
+    const sign = Math.sign(delta);
+    const mag = Math.abs(delta);
+    this.value += sign * Math.min(mag, this.speedLimit) * timeDelta * 60;
   }
 }
