@@ -99,9 +99,13 @@ export default function Email(props: {
                   if (sendChallengeAnswer) {
                     setAccountChangesPending(true);
                     setBusy(true);
-                    sendChallengeAnswer(code.join("")).then(() =>
-                      setBusy(false),
-                    );
+                    sendChallengeAnswer(code.join("")).then(() => {
+                      refreshAccounts().then(() => {
+                        // setWalletAddress(wallet as Address);
+                        setShowCodeUI(false);
+                        setBusy(false);
+                      });
+                    });
                   }
                 }}
                 data-id="verifyButton"
