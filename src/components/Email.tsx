@@ -109,7 +109,7 @@ export default function Email(props: {
                   }
                 }}
                 data-id="verifyButton"
-                style={{ flex: "0 0 150px", position: "relative" }}
+                style={{ flex: "0 0 180px", position: "relative" }}
               >
                 {busy ? "Verifying..." : "Verify"}
               </button>
@@ -151,11 +151,11 @@ export default function Email(props: {
               disabled={!isEmailValid}
               onClick={() => initiateEmailAuth(email)}
               data-id="continueButton"
-              style={{ flex: "0 0 150px", position: "relative" }}
+              style={{ flex: "0 0 180px", position: "relative" }}
             >
               {currentAccount ? (
                 <>
-                  Link Email
+                  Add Email Login
                   <AddLink
                     style={{
                       position: "absolute",
