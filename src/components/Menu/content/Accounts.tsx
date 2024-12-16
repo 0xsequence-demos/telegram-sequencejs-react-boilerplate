@@ -87,7 +87,7 @@ function MenuContentAccounts(props: {
           <button
             className={loggingOut ? "pending" : ""}
             style={{
-              flex: "0 0 150px",
+              flex: "0 0 180px",
               position: "relative",
             }}
             onClick={() => {
@@ -181,7 +181,7 @@ function MenuContentAccounts(props: {
                           );
                         });
                       }}
-                      style={{ flex: "0 0 150px", position: "relative" }}
+                      style={{ flex: "0 0 180px", position: "relative" }}
                     >
                       {a.type === IdentityType.Guest ? (
                         <ReportProblem
@@ -192,9 +192,7 @@ function MenuContentAccounts(props: {
                           }}
                         />
                       ) : null}
-                      {accountsUnlinking.includes(a.id)
-                        ? "Unlinking"
-                        : "Unlink"}
+                      {accountsUnlinking.includes(a.id) ? "Removing" : "Remove"}
                       <LinkOff
                         style={{
                           position: "absolute",
