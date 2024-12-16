@@ -120,9 +120,9 @@ export default class Game {
     let lastTime = performance.now() * 0.001;
     const keysDown = new Map<string, boolean>();
     const walkSpeed = 0.5;
-    const walkSpeedDelta = 0.05;
-    let walkSpeedX = 0;
-    let walkSpeedY = 0;
+    const charMoveDelta = 0.05;
+    let charMoveX = 0;
+    let charMoveY = 0;
     let angleTarget = 0;
 
     const mapCache = new Map<string, Mesh>();
@@ -155,53 +155,60 @@ export default class Game {
       if (partyAnim > 0.25 && !this.paused) {
         let y = false;
         if (keysDown.get("KeyW") || keysDown.get("ArrowUp")) {
-          walkSpeedY = clamp(
-            Math.max(0, walkSpeedY + walkSpeedDelta),
+          charMoveY = clamp(
+            Math.max(0, charMoveY + charMoveDelta),
             -walkSpeed,
             walkSpeed,
           );
           y = true;
         }
         if (keysDown.get("KeyS") || keysDown.get("ArrowDown")) {
-          walkSpeedY = clamp(
-            Math.min(0, walkSpeedY - walkSpeedDelta),
+          charMoveY = clamp(
+            Math.min(0, charMoveY - charMoveDelta),
             -walkSpeed,
             walkSpeed,
           );
           y = true;
         }
         if (!y) {
-          const sign = Math.sign(walkSpeedY);
-          const mag = Math.abs(walkSpeedY);
-          walkSpeedY = Math.max(0, mag - walkSpeedDelta) * sign;
+          const sign = Math.sign(charMoveY);
+          const mag = Math.abs(charMoveY);
+          charMoveY = Math.max(0, mag - charMoveDelta) * sign;
         }
         let x = false;
         if (keysDown.get("KeyA") || keysDown.get("ArrowLeft")) {
-          walkSpeedX = clamp(
-            Math.min(0, walkSpeedX - walkSpeedDelta),
+          charMoveX = clamp(
+            Math.min(0, charMoveX - charMoveDelta),
             -walkSpeed,
             walkSpeed,
           );
           x = true;
         }
         if (keysDown.get("KeyD") || keysDown.get("ArrowRight")) {
-          walkSpeedX = clamp(
-            Math.max(0, walkSpeedX + walkSpeedDelta),
+          charMoveX = clamp(
+            Math.max(0, charMoveX + charMoveDelta),
             -walkSpeed,
             walkSpeed,
           );
           x = true;
         }
         if (!x) {
-          const sign = Math.sign(walkSpeedX);
-          const mag = Math.abs(walkSpeedX);
-          walkSpeedX = Math.max(0, mag - walkSpeedDelta) * sign;
+          const sign = Math.sign(charMoveX);
+          const mag = Math.abs(charMoveX);
+          charMoveX = Math.max(0, mag - charMoveDelta) * sign;
         }
         const charMove = charHolder.position.clone();
-        charHolder.position.x -= Math.cos(a + Math.PI * 0.5) * walkSpeedX;
-        charHolder.position.z -= Math.sin(a + Math.PI * 0.5) * walkSpeedX;
-        charHolder.position.x -= Math.cos(a) * walkSpeedY;
-        charHolder.position.z -= Math.sin(a) * walkSpeedY;
+        const charMoveAngle = Math.atan2(charMoveY, charMoveX);
+        const charMoveMag = Math.min(
+          1,
+          Math.sqrt(charMoveX * charMoveX + charMoveY * charMoveY),
+        );
+        const walkX = Math.cos(charMoveAngle) * charMoveMag * walkSpeed;
+        const walkY = Math.sin(charMoveAngle) * charMoveMag * walkSpeed;
+        charHolder.position.x -= Math.cos(a + Math.PI * 0.5) * walkX;
+        charHolder.position.z -= Math.sin(a + Math.PI * 0.5) * walkX;
+        charHolder.position.x -= Math.cos(a) * walkY;
+        charHolder.position.z -= Math.sin(a) * walkY;
         charMove.sub(charHolder.position);
         if (charMove.length() > 0.01) {
           angleTarget = Math.atan2(-charMove.z, charMove.x) + Math.PI * 0.5;
