@@ -19,9 +19,11 @@ function Menu(props: {
   network: Network | null;
   setNetwork: Dispatch<SetStateAction<Network | null>>;
   removeAccount: (id: string) => Promise<void>;
-  loggingOut: boolean;
   refreshAccounts: () => Promise<void>;
+  loggingOut: boolean;
   setLoggingOut: Dispatch<SetStateAction<boolean>>;
+  menuOpen: boolean;
+  setMenuOpen: Dispatch<SetStateAction<boolean>>;
 }) {
   const {
     network,
@@ -39,20 +41,20 @@ function Menu(props: {
     setCurrentAccount,
     setLoggingOut,
     refreshAccounts,
+    menuOpen,
+    setMenuOpen,
   } = props;
-  const [open, setOpen] = useState(true);
   const [tab, setTab] = useState("accounts");
-  getGameEngine().renderer.domElement.className = open ? "blur" : "";
+  getGameEngine().renderer.domElement.className = menuOpen ? "blur" : "";
   return (
-    <div className={`${open ? "settingsOpen" : "settingsClosed"} panel`}>
+    <div className={`${menuOpen ? "settingsOpen" : "settingsClosed"} panel`}>
       <SettingsButton
-        open={open}
+        open={menuOpen}
         onClick={() => {
-          setOpen(!open);
-          getGameEngine().game.paused = !open;
+          setMenuOpen(!menuOpen);
         }}
       />
-      {open ? (
+      {menuOpen ? (
         <MenuContent
           network={network}
           walletAddress={walletAddress}

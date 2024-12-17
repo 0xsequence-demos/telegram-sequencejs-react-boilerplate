@@ -81,6 +81,31 @@ const Home = () => {
   useEffect(() => {
     // getGameEngine().game.party = true;
     getGameEngine().game.party = !!walletAddress;
+    const i = setTimeout(() => {
+      // getGameEngine().game.paused = !walletAddress;
+      setMenuOpen(!walletAddress);
+    }, 1000);
+    return () => {
+      clearTimeout(i);
+    };
+  }, [walletAddress]);
+
+  const [coinBalance, setCoinBalance] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  useEffect(() => {
+    const i = setTimeout(
+      () => {
+        getGameEngine().game.paused = menuOpen;
+      },
+      menuOpen ? 500 : 0,
+    );
+    return () => clearTimeout(i);
+  }, [menuOpen]);
+
+  useEffect(() => {
+    // getGameEngine().game.party = true;
+    getGameEngine().game.onCoinBalanceChange = setCoinBalance;
   }, [walletAddress]);
 
   return (
@@ -91,9 +116,12 @@ const Home = () => {
             {walletAddress && <MainConnected walletAddress={walletAddress} />}
           </div>
         </div>
+        <div className="coin-balance">{coinBalance}</div>
         <Menu
           network={network}
           setNetwork={setNetwork}
+          menuOpen={menuOpen}
+          setMenuOpen={setMenuOpen}
           walletAddress={walletAddress}
           accounts={accounts}
           setAccounts={setAccounts}
