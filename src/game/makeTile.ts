@@ -1,4 +1,4 @@
-import { Color, DoubleSide, Mesh, MeshStandardMaterial } from "three";
+import { Color, DoubleSide, Mesh, MeshStandardMaterial, Vector4 } from "three";
 import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
 import { lerp, wrapRange } from "./utils/math";
 import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
@@ -6,7 +6,7 @@ import { distPerTile } from "./constants";
 import { randFloatSpread } from "three/src/math/MathUtils.js";
 import Coin from "./Coin";
 import { clamp } from "./clamp";
-
+const ditheredHole = new Vector4(0, -0.5, 0.5, 11.5);
 export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
   const x = ix * distPerTile;
   const y = iy * distPerTile;
@@ -36,6 +36,7 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
         metalness: 0,
         emissive: 0x171e2c,
         side: DoubleSide,
+        ditheredHole,
       });
       for (let i = 0; i < 5; i++) {
         const leaves = new Mesh(g, leafMat);
@@ -63,6 +64,7 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
           metalness: 0,
           emissive: 0x171e2c,
           side: DoubleSide,
+          ditheredHole,
         }),
       );
       trunk.name = "treeTrunk";
@@ -117,7 +119,9 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
           roughness: 0.75,
           metalness: 0,
           side: DoubleSide,
+          ditheredHole,
         });
+        rockMat.name = "rock";
         const t = 8;
         for (let i = 0; i < t; i++) {
           for (let j = 0; j < t2; j++) {

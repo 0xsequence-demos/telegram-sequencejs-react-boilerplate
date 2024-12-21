@@ -13,7 +13,7 @@ export default class Animation {
   update(dt: number) {
     this.anim.update(dt);
     this._onUpdate(this.anim.value);
-    if (this.anim.value === 1) {
+    if (this.anim.value >= 1) {
       this._onComplete(this);
     }
   }
