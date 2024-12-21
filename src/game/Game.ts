@@ -1,6 +1,5 @@
 import {
   CameraHelper,
-  CircleGeometry,
   Color,
   DirectionalLight,
   DirectionalLightHelper,
@@ -94,17 +93,17 @@ export default class Game {
     );
     this.scene = scene;
     this.camera = camera;
-    const cookieCutter = new Mesh(
-      new CircleGeometry(0.02),
-      new MeshBasicMaterial({
-        colorWrite: false,
-        // alphaHash: true,
-        // opacity: 0.75,
-      }),
-    );
-    this.camera.add(cookieCutter);
-    cookieCutter.position.y = -0.04;
-    cookieCutter.position.z = -0.1;
+    // const cookieCutter = new Mesh(
+    //   new CircleGeometry(0.02),
+    //   new MeshBasicMaterial({
+    //     colorWrite: false,
+    //     // alphaHash: true,
+    //     // opacity: 0.75,
+    //   }),
+    // );
+    // this.camera.add(cookieCutter);
+    // cookieCutter.position.y = -0.04;
+    // cookieCutter.position.z = -0.1;
     const camDist = 4;
     const boomDist = 8;
     const camTruck = new CameraTruck(camera, camDist, boomDist);
@@ -484,17 +483,17 @@ export default class Game {
 
       renderer.setClearColor(__tempColor.getHex());
       renderer.clear();
-      cookieCutter.visible = false;
-      camera.near = 10;
-      camera.far = 1000;
-      camera.updateProjectionMatrix();
+      // cookieCutter.visible = false;
+      // camera.near = 10;
+      // camera.far = 1000;
+      // camera.updateProjectionMatrix();
       renderer.render(scene, camera);
-      renderer.clearDepth();
-      cookieCutter.visible = true;
-      camera.near = 0.1;
-      camera.far = 10;
-      camera.updateProjectionMatrix();
-      renderer.render(scene, camera);
+      // renderer.clearDepth();
+      // cookieCutter.visible = true;
+      // camera.near = 0.1;
+      // camera.far = 10;
+      // camera.updateProjectionMatrix();
+      // renderer.render(scene, camera);
       renderer.render(uiScene, uiCamera);
     };
     window.addEventListener("resize", this.onResize);

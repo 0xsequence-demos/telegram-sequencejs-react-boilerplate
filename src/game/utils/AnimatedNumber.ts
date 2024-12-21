@@ -11,6 +11,6 @@ export default class AnimatedNumber {
     const sign = Math.sign(delta);
     const mag = Math.abs(delta);
     this.value +=
-      sign * Math.min(mag, this.speedLimit) * Math.min(timeDelta, 0.2) * 60;
+      sign * Math.min(mag * Math.min(timeDelta, 0.2) * 60, this.speedLimit);
   }
 }
