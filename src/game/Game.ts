@@ -16,13 +16,10 @@ import {
   Vector3,
   WebGLRenderer,
 } from "three";
-import Character from "./character/Character";
 import makeSequenceLogo from "./makeSequenceLogo";
 import AnimatedNumber from "./utils/AnimatedNumber";
-import { loadGLTF } from "./utils/loadGLTF";
 import { Easing } from "./utils/easing";
-import { dist2, lerp, remap } from "./utils/math";
-import { clamp } from "./clamp";
+import { dist2, dist2Manhattan, lerp, remap } from "./utils/math";
 import { searchParams } from "./character/searchParams";
 import { makeTile } from "./makeTile";
 import {
@@ -36,9 +33,13 @@ import {
 import { removeFromArray } from "./removeFromArray";
 import Coin from "./Coin";
 import CameraTruck from "./CameraTruck";
-import Animation from "./Animation";
-import { xzDist } from "./utils/xzDist";
 import JoystickRing from "./JoystickRing";
+import { CharacterHolder } from "./character/CharacterHolder";
+import World from "./World";
+import AnimationManager from "./AnimationManager";
+import PlayerCharacterController from "./PlayerCharacterController";
+import BotCharacterController from "./BotCharacterController";
+import { randFloatSpread } from "three/src/math/MathUtils.js";
 
 const debug = searchParams.has("debug");
 const mouseTouch = searchParams.has("mouseTouch");
@@ -48,15 +49,17 @@ const LIGHT_COLOR_GROUND = 0xafafaf;
 
 const __tempColor = new Color();
 const __tempColor2 = new Color();
+
 export default class Game {
   paused = false;
   party: boolean = false;
-  character: Character | undefined;
   partyFloat = new AnimatedNumber(0, 0.01);
-  charHolder: Object3D;
+  playerController: PlayerCharacterController;
+  botControllers: BotCharacterController[] = [];
+  allControllers: Array<BotCharacterController | PlayerCharacterController> =
+    [];
   camera: PerspectiveCamera;
   camTruck: CameraTruck;
-  private _coinBalance = 0;
   usingTouch = false;
   uiCoin: Coin;
   keysDown = new Map<string, boolean>();
@@ -66,17 +69,6 @@ export default class Game {
   worldspaceUiCoinTarget: Object3D;
   activeTouchIds: number[] = [];
   idledTime = 10;
-
-  public get coinBalance() {
-    return this._coinBalance;
-  }
-  public set coinBalance(value) {
-    this._coinBalance = value;
-    if (this.onCoinBalanceChange) {
-      this.onCoinBalanceChange(value);
-    }
-  }
-  onCoinBalanceChange: ((v: number) => void) | undefined;
 
   constructor() {
     const uiScene = new Scene();
@@ -93,20 +85,8 @@ export default class Game {
     );
     this.scene = scene;
     this.camera = camera;
-    // const cookieCutter = new Mesh(
-    //   new CircleGeometry(0.02),
-    //   new MeshBasicMaterial({
-    //     colorWrite: false,
-    //     // alphaHash: true,
-    //     // opacity: 0.75,
-    //   }),
-    // );
-    // this.camera.add(cookieCutter);
-    // cookieCutter.position.y = -0.04;
-    // cookieCutter.position.z = -0.1;
     const camDist = 4;
-    const boomDist = 8;
-    const camTruck = new CameraTruck(camera, camDist, boomDist);
+    const camTruck = new CameraTruck(camera, camDist, 8);
     this.camTruck = camTruck;
     scene.add(camTruck);
     const lightAmbient = new HemisphereLight(
@@ -142,7 +122,7 @@ export default class Game {
       scene.add(dlh);
       scene.add(dlh2);
     }
-    const uiCoin = new Coin(false, true);
+    const uiCoin = new Coin(false, true, true);
     uiCoin.material.depthTest = false;
     this.uiCoin = uiCoin;
     uiScene.add(uiCoin);
@@ -175,49 +155,60 @@ export default class Game {
     floor.position.y = 0.1;
     floor.rotation.x = Math.PI * -0.5;
     // scene.add(floor);
-    const charHolder = new Object3D();
-    scene.add(charHolder);
-    this.charHolder = charHolder;
-    loadGLTF("quinn-the-bot.glb").then((gltf) => {
-      gltf.scene.traverse((n) => {
-        n.receiveShadow = true;
-        n.castShadow = true;
-      });
-      this.character = new Character(gltf.scene, charHolder);
-    });
-    let lastTime = performance.now() * 0.001;
-    const walkSpeed = 0.5;
-    const charMoveDelta = 0.05;
-    let charMoveX = 0;
-    let charMoveY = 0;
-    let angleTarget = 0;
 
-    const mapCache = new Map<string, Mesh>();
-    const knownCoins: string[] = [];
-    const availableCoins: string[] = [];
-    const knownTrees: string[] = [];
-    const availableTrees: string[] = [];
-    const knownTowers: string[] = [];
-    const availableTowers: string[] = [];
-    const foundCoins: string[] = [];
-    const animations: Animation[] = [];
-    const animationsFinished: Animation[] = [];
+    let lastTime = performance.now() * 0.001;
+    const world = new World();
+    const animationManager = new AnimationManager();
+
+    const playerCharHolder = new CharacterHolder(
+      scene,
+      world,
+      animationManager,
+      worldspaceUiCoinTarget,
+    );
+    scene.add(playerCharHolder);
+
+    this.playerController = new PlayerCharacterController(
+      playerCharHolder,
+      this.keysDown,
+      camTruck,
+    );
+    this.allControllers.push(this.playerController);
+
+    for (let i = 0; i < 10; i++) {
+      const botCharHolder = new CharacterHolder(scene, world, animationManager);
+      scene.add(botCharHolder);
+
+      const bc = new BotCharacterController(botCharHolder);
+      this.botControllers.push(bc);
+      this.allControllers.push(bc);
+    }
+
+    function makeCoins() {
+      for (let i = 0; i < 1000; i++) {
+        const coin = new Coin(true, false, false);
+        coin.position.x = randFloatSpread(20);
+        coin.position.y = 1.5;
+        coin.position.z = randFloatSpread(20);
+        scene.add(coin);
+        world.items.push(coin);
+      }
+    }
 
     this.render = (renderer: WebGLRenderer) => {
       if (this.paused) {
         return;
       }
+      if (world.items.length === 0) {
+        makeCoins();
+      }
       const time = performance.now() * 0.001;
       const deltaTime = time - lastTime;
       lastTime = time;
 
-      const cx = Math.round(charHolder.position.x / distPerTile);
-      const cy = Math.round(charHolder.position.z / distPerTile);
+      const cx = Math.round(playerCharHolder.position.x / distPerTile);
+      const cy = Math.round(playerCharHolder.position.z / distPerTile);
 
-      if (this.character) {
-        this.character.happiness.target = this.party ? 1 : 0;
-        this.character.update(time);
-      }
       lightAmbient.color.set(LIGHT_COLOR_SKY);
       lightAmbient.groundColor.set(LIGHT_COLOR_GROUND);
       this.partyFloat.target = this.party ? 1 : 0;
@@ -225,193 +216,43 @@ export default class Game {
       const partyAnim = Easing.Quadratic.InOut(this.partyFloat.value);
       camera.position.z = lerp(-12, -camDist, partyAnim);
       camera.position.y = lerp(0, 6, partyAnim);
-      const dp = camTruck.virtualPivot.position
-        .clone()
-        .applyMatrix4(camTruck.matrixWorld);
-      const dc = charHolder.position.clone();
-      const d = dp.clone().sub(dc);
-      const a = Math.atan2(d.z, d.x);
 
-      if (partyAnim > 0.25 && !this.paused) {
-        let x = false;
-        let y = false;
-        // const j = false;
-        const j =
-          this.activeTouchIds.length > 0 &&
-          this.joystickRings.get(this.activeTouchIds[0]);
-        if (j) {
-          x = true;
-          y = true;
-          charMoveX = j.inner.position.x / 100;
-          charMoveY = j.inner.position.y / 100;
+      if (partyAnim > 0.25) {
+        const joystick =
+          this.activeTouchIds.length > 0
+            ? this.joystickRings.get(this.activeTouchIds[0])
+            : undefined;
+        this.playerController.update(joystick, deltaTime);
+        for (const bc of this.botControllers) {
+          bc.update(deltaTime);
         }
-
-        if ((!j && this.keysDown.get("KeyW")) || this.keysDown.get("ArrowUp")) {
-          charMoveY = clamp(
-            Math.max(0, charMoveY + charMoveDelta),
-            -walkSpeed,
-            walkSpeed,
-          );
-          y = true;
-        }
-        if (
-          (!j && this.keysDown.get("KeyS")) ||
-          this.keysDown.get("ArrowDown")
-        ) {
-          charMoveY = clamp(
-            Math.min(0, charMoveY - charMoveDelta),
-            -walkSpeed,
-            walkSpeed,
-          );
-          y = true;
-        }
-        if (!y) {
-          const sign = Math.sign(charMoveY);
-          const mag = Math.abs(charMoveY);
-          charMoveY = Math.max(0, mag - charMoveDelta) * sign;
-        }
-        if (
-          (!j && this.keysDown.get("KeyA")) ||
-          this.keysDown.get("ArrowLeft")
-        ) {
-          charMoveX = clamp(
-            Math.min(0, charMoveX - charMoveDelta),
-            -walkSpeed,
-            walkSpeed,
-          );
-          x = true;
-        }
-        if (
-          (!j && this.keysDown.get("KeyD")) ||
-          this.keysDown.get("ArrowRight")
-        ) {
-          charMoveX = clamp(
-            Math.max(0, charMoveX + charMoveDelta),
-            -walkSpeed,
-            walkSpeed,
-          );
-          x = true;
-        }
-        if (!x) {
-          const sign = Math.sign(charMoveX);
-          const mag = Math.abs(charMoveX);
-          charMoveX = Math.max(0, mag - charMoveDelta) * sign;
-        }
-        const charMove = charHolder.position.clone();
-        const charMoveAngle = Math.atan2(charMoveY, charMoveX);
-        const charMoveMag = Math.min(0.5, dist2(charMoveX, charMoveY));
-        if (charMoveMag > 0.1) {
-          this.idledTime = 0;
-        } else {
-          this.idledTime += deltaTime;
-        }
-        if (this.character) {
-          this.character.idling.target = this.idledTime > 4 ? 1 : 0;
-          this.character.running.target = Math.min(1, charMoveMag * 2);
-        }
-        const walkX = Math.cos(charMoveAngle) * charMoveMag * walkSpeed;
-        const walkY = Math.sin(charMoveAngle) * charMoveMag * walkSpeed;
-        charHolder.position.x -= Math.cos(a + Math.PI * 0.5) * walkX;
-        charHolder.position.z -= Math.sin(a + Math.PI * 0.5) * walkX;
-        charHolder.position.x -= Math.cos(a) * walkY;
-        charHolder.position.z -= Math.sin(a) * walkY;
-        charMove.sub(charHolder.position);
-        if (charMove.length() > 0.01) {
-          angleTarget = Math.atan2(-charMove.z, charMove.x) + Math.PI * 0.5;
-        }
-        const locationKey = `${cx};${cy}`;
-        if (availableCoins.includes(locationKey)) {
-          const tileMesh = mapCache.get(locationKey)!;
-          const coin = tileMesh.getObjectByName("coin")!;
-          const p = coin.position.clone();
-          p.applyMatrix4(coin.parent!.matrixWorld);
-          if (xzDist(p, charHolder.position) <= 1.8) {
-            console.log("ding");
-            removeFromArray(availableCoins, locationKey);
-            foundCoins.push(locationKey);
-            scene.attach(coin);
-            const origin = coin.position.clone();
-            let coinAdded = false;
-            animations.push(
-              new Animation(
-                (v) => {
-                  coin.scale.setScalar(1 - v * 0.75);
-                  coin.position.copy(origin);
-                  coin.position.y += v * 10;
-                  coin.position.lerp(worldspaceUiCoinTarget.position, v * v);
-                  if (!coinAdded && v > 0.85) {
-                    this.coinBalance++;
-                    coinAdded = true;
-                  }
-                },
-                (a) => {
-                  scene.remove(coin);
-                  animationsFinished.push(a);
-                },
-                0.04,
-              ),
-            );
-          }
-        }
-        if (availableTrees.includes(locationKey)) {
-          const tileMesh = mapCache.get(locationKey)!;
-          const tree = tileMesh.getObjectByName("treeTrunk")!;
-          const p = tree.position.clone();
-          p.applyMatrix4(tree.parent!.matrixWorld);
-          const dist = xzDist(p, charHolder.position);
-          if (dist <= 1.8) {
-            console.log("chop");
-            const dx = p.x - charHolder.position.x;
-            const dz = p.z - charHolder.position.z;
-            const a = Math.atan2(dz, dx);
-            const gap = dist - 1.8;
-            charHolder.position.x += Math.cos(a) * gap;
-            charHolder.position.z += Math.sin(a) * gap;
-          }
-        }
-        if (availableTowers.includes(locationKey)) {
-          const tileMesh = mapCache.get(locationKey)!;
-          const tower = tileMesh.getObjectByName("tower")!;
-          for (let i = 0; i < 4; i++) {
-            const a = (Math.PI * 2 * (i + 0.5)) / 4;
-            const ix = Math.cos(a) * 3.25;
-            const iy = Math.sin(a) * 3.25;
-            const p = tower.position.clone();
-            p.x += ix;
-            p.z += iy;
-            p.applyMatrix4(tower.parent!.matrixWorld);
-            const dist = xzDist(p, charHolder.position);
-            if (dist <= 2) {
-              console.log("boom");
-              const dx = p.x - charHolder.position.x;
-              const dz = p.z - charHolder.position.z;
-              const a = Math.atan2(dz, dx);
-              const gap = dist - 2;
-              charHolder.position.x += Math.cos(a) * gap;
-              charHolder.position.z += Math.sin(a) * gap;
+        for (let i = 0; i < this.allControllers.length; i++) {
+          const actorA = this.allControllers[i];
+          const ax = actorA.charHolder.position.x;
+          const ay = actorA.charHolder.position.z;
+          for (let j = i + 1; j < this.allControllers.length; j++) {
+            const actorB = this.allControllers[j];
+            const bx = actorB.charHolder.position.x;
+            const by = actorB.charHolder.position.z;
+            const dx = ax - bx;
+            const dy = ay - by;
+            if (dist2Manhattan(dx, dy) < 2) {
+              const len = dist2(dx, dy);
+              if (len < 2) {
+                const a = Math.atan2(dy, dx);
+                const push = (len - 2) * -0.25;
+                actorA.charHolder.position.x += Math.cos(a) * push;
+                actorA.charHolder.position.z += Math.sin(a) * push;
+                actorB.charHolder.position.x += Math.cos(a + Math.PI) * push;
+                actorB.charHolder.position.z += Math.sin(a + Math.PI) * push;
+              }
             }
           }
         }
-        let ad = charHolder.rotation.y - angleTarget;
-        if (ad > Math.PI) {
-          ad -= Math.PI * 2;
-        } else if (ad < -Math.PI) {
-          ad += Math.PI * 2;
-        }
-        charHolder.rotation.y -= ad * 0.5;
-        camTruck.rotation.y = -a - Math.PI * 0.5;
-        camTruck.position.x -=
-          (camTruck.position.x -
-            (Math.cos(a + Math.PI) * -boomDist + charHolder.position.x)) *
-          0.2;
-        camTruck.position.z -=
-          (camTruck.position.z -
-            (Math.sin(a + Math.PI) * -boomDist + charHolder.position.z)) *
-          0.2;
       }
 
-      sun.position.set(sunDist, sunDist, 0).add(charHolder.position);
-      sun.target.position.copy(charHolder.position);
+      sun.position.set(sunDist, sunDist, 0).add(playerCharHolder.position);
+      sun.target.position.copy(playerCharHolder.position);
 
       this.updateUiCoinTarget();
 
@@ -419,51 +260,61 @@ export default class Game {
       // this.uiCoin.lookAt(new Vector3(0, 12, 0));
       // this.uiCoin.updateMatrix();
 
-      for (const anim of animations) {
-        anim.update(deltaTime);
-      }
-      if (animationsFinished.length > 0) {
-        for (let i = animationsFinished.length - 1; i >= 0; i--) {
-          removeFromArray(animations, animationsFinished[i]);
-        }
-        animationsFinished.length = 0;
-      }
+      animationManager.update(deltaTime);
+      const playerX = playerCharHolder.position.x;
+      const playerY = playerCharHolder.position.z;
 
       for (let iy = cy - mapReachTiles; iy <= cy + mapReachTiles; iy++) {
         for (let ix = cx - mapReachTiles; ix <= cx + mapReachTiles; ix++) {
           const x = ix * distPerTile;
           const y = iy * distPerTile;
-          const dx = charHolder.position.x - x;
-          const dy = charHolder.position.z - y;
+          const dx = playerX - x;
+          const dy = playerY - y;
           const tileScale =
             (mapReachDist - Math.sqrt(dx * dx + dy * dy)) / mapReachDist;
           const key = `${ix};${iy}`;
-          const tileExists = mapCache.has(key);
+          const tileExists = world.mapCache.has(key);
           if (!tileExists && tileScale > 0) {
-            const mesh = makeTile(ix, iy, !foundCoins.includes(key));
-            if (mesh.userData.coin && !knownCoins.includes(key)) {
-              knownCoins.push(key);
-              availableCoins.push(key);
+            const mesh = makeTile(ix, iy);
+            // const mesh = makeTile(ix, iy, !world.foundCoins.includes(key));
+            // if (mesh.userData.coin && !world.knownCoins.includes(key)) {
+            //   world.knownCoins.push(key);
+            //   world.availableCoins.push(key);
+            // }
+            if (mesh.userData.tree && !world.knownTrees.includes(key)) {
+              world.knownTrees.push(key);
+              world.availableTrees.push(key);
             }
-            if (mesh.userData.tree && !knownTrees.includes(key)) {
-              knownTrees.push(key);
-              availableTrees.push(key);
-            }
-            if (mesh.userData.tower && !knownTowers.includes(key)) {
-              knownTowers.push(key);
-              availableTowers.push(key);
+            if (mesh.userData.tower && !world.knownTowers.includes(key)) {
+              world.knownTowers.push(key);
+              world.availableTowers.push(key);
             }
             scene.add(mesh);
-            mapCache.set(key, mesh);
+            world.mapCache.set(key, mesh);
           } else if (tileExists && tileScale <= 0) {
-            const m = mapCache.get(key)!;
+            const m = world.mapCache.get(key)!;
             scene.remove(m);
-            mapCache.delete(key);
+            world.mapCache.delete(key);
           } else if (tileExists) {
-            const m = mapCache.get(key)!;
+            const m = world.mapCache.get(key)!;
             m.scale.setScalar(partyAnim * (1 - Math.pow(1 - tileScale, 3)));
+            m.position.y = -5 * Math.pow(1 - tileScale, 3) - 1;
           }
         }
+      }
+      for (const bc of this.botControllers) {
+        const dx = playerX - bc.charHolder.position.x;
+        const dy = playerY - bc.charHolder.position.z;
+        const actorScale = (mapReachDist - dist2(dx, dy)) / mapReachDist;
+        bc.charHolder.scale.setScalar(1 - Math.pow(1 - actorScale, 3));
+        bc.charHolder.position.y = -5 * Math.pow(1 - actorScale, 3);
+      }
+      for (const item of world.items) {
+        const dx = playerX - item.position.x;
+        const dy = playerY - item.position.z;
+        const itemScale = (mapReachDist - dist2(dx, dy)) / mapReachDist;
+        item.scale.setScalar(1 - Math.pow(1 - itemScale, 3));
+        item.position.y = -5 * Math.pow(1 - itemScale, 3) + 1;
       }
       if (partyAnim > 0.001) {
         __tempColor.setHSL(time * 0.5, 0.5, 0.75);
@@ -475,9 +326,9 @@ export default class Game {
 
       logoHolder.scale.setScalar(1 - partyAnim);
       logoHolder.position.set(
-        charHolder.position.x,
+        playerCharHolder.position.x,
         -partyAnim,
-        charHolder.position.z,
+        playerCharHolder.position.z,
       );
       logoHolder.visible = partyAnim < 0.995;
 

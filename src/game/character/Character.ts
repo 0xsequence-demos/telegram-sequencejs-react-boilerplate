@@ -1,4 +1,4 @@
-import { Mesh, Object3D, Vector3 } from "three";
+import { Color, Mesh, Object3D, Vector3 } from "three";
 import Limb from "./Limb";
 import { getProtoTargetMesh } from "./protoTargetMesh";
 import { charactetAnimations } from "./dances";
@@ -15,7 +15,7 @@ const secondaryTargets = {
 const limbNames = ["arm", "leg"];
 export default class Character {
   limbTargets: Object3D[] = [];
-  head: Object3D;
+  head: Mesh;
   legs: Limb[] = [];
   eyes: Object3D[] = [];
   arms: Limb[] = [];
@@ -55,8 +55,10 @@ export default class Character {
       } else {
         const clone = child.clone(true);
         this.botPivot.add(clone);
-        if (clone.name === "head") {
+        if (clone.name === "head" && clone instanceof Mesh) {
           this.head = clone;
+          clone.material = clone.material.clone();
+          clone.material.color = new Color().setHSL(Math.random(), 0.9, 0.6);
           const mirrorThese: Object3D[] = [];
           clone.traverse((headNode) => {
             if (headNode.name.includes("eye")) {
@@ -82,9 +84,10 @@ export default class Character {
     if (this.lastTime === undefined) {
       this.lastTime = time;
     }
-    this.idling.update(time - this.lastTime);
-    this.happiness.update(time - this.lastTime);
-    this.running.update(time - this.lastTime);
+    const timeDelta = time - this.lastTime;
+    this.idling.update(timeDelta);
+    this.happiness.update(timeDelta);
+    this.running.update(timeDelta);
     this.lastTime = time;
     const danceTime = time * (1.8 / 2);
     const danceBasic = charactetAnimations.danceBasic;

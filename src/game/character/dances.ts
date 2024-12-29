@@ -3,6 +3,8 @@ import { Dance } from "./Dance";
 import { clamp01, cos, sin } from "../utils/math";
 import { Easing } from "../utils/easing";
 
+const pacing = 24;
+
 const danceBasic: Dance = {
   arm: (target, side, time) => {
     time += (side * Math.PI) / 16;
@@ -41,18 +43,19 @@ const danceBasic: Dance = {
 
 const running: Dance = {
   arm: (target, side, time) => {
-    const halfPhase = Math.PI * 0.5 * side;
+    const halfPhase = Math.PI * 0.5 * -side;
+    const a = 2 * cos(time * pacing + halfPhase) - Math.PI * 0.75;
     target.position.set(
       // (sin(time * 8 + halfPhase) + 0.5) * side,
       0,
-      -sin(time * 32 + halfPhase) - 0.25,
-      sin(time * 16 + halfPhase) * 1.2 - 0.5,
+      sin(a) - 0.25,
+      cos(a) * 1.2 - 0.5,
     );
     target.position.multiplyScalar(0.3);
   },
   leg: (target, side, time) => {
     const halfPhase = Math.PI * 0.5 * side;
-    const a = time * 32 + halfPhase;
+    const a = time * pacing + halfPhase;
     target.position.set(
       0,
       Math.max(-0.6, Math.sin(a) * 0.3 - 0.6),

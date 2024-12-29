@@ -4,10 +4,11 @@ import { lerp, wrapRange } from "./utils/math";
 import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
 import { distPerTile } from "./constants";
 import { randFloatSpread } from "three/src/math/MathUtils.js";
-import Coin from "./Coin";
+// import Coin from "./Coin";
 import { clamp } from "./clamp";
+import { geometryRecipes } from "./geometryRecipes";
 const ditheredHole = new Vector4(0, -0.5, 0.5, 11.5);
-export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
+export function makeTile(ix: number, iy: number) {
   const x = ix * distPerTile;
   const y = iy * distPerTile;
 
@@ -28,7 +29,7 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
   getChamferedBoxGeometry(distPerTile, 2, distPerTile, 0.25).then(
     (g) => (mesh.geometry = g),
   );
-  if (wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) === 0) {
+  if (wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) <= 4) {
     getChamferedBoxGeometry(4, 2, 4, 0.5).then((g) => {
       const leafMat = new MeshStandardMaterial({
         color: 0x17ae2c,
@@ -82,7 +83,7 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
   } else if (
     wrapRange(ix * 47 + iy * 19 + 91, 0, wrapRange(ix + iy, 24, 31)) < 3
   ) {
-    getChamferedBoxGeometry(2, 1, 2, 0.25).then((g) => {
+    geometryRecipes.castleBlock().then((g) => {
       const t = ((x * 17 + y * 9 + 21) % 5) + 2;
       const rockMat = new MeshStandardMaterial({
         color: 0x777e9c,
@@ -113,7 +114,7 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
       ((x * 17 + y * 9 + 21) % 5) +
       clamp(13 - Math.round(Math.abs(ix) + Math.abs(iy)), 0, 6);
     if (t2 > 0) {
-      getChamferedBoxGeometry(2, 1.5, 2.5, 0.25, 0.375).then((g) => {
+      geometryRecipes.castleBlock().then((g) => {
         const rockMat = new MeshStandardMaterial({
           color: 0x777e9c,
           roughness: 0.75,
@@ -150,16 +151,6 @@ export function makeTile(ix: number, iy: number, coinStillAvailable?: boolean) {
       });
       mesh.userData.tower = true;
     }
-  } else if (
-    coinStillAvailable &&
-    wrapRange(ix * 53 + iy * 109 - 91, 0, wrapRange(ix - iy, 24, 31)) < 10
-  ) {
-    const coin = new Coin(true);
-    coin.position.set(randFloatSpread(7), 3, randFloatSpread(7));
-    mesh.add(coin);
-    mesh.userData.coin = true;
-    coin.receiveShadow = true;
-    coin.castShadow = true;
   }
   mesh.position.set(x, -1, y);
   mesh.rotation.set(

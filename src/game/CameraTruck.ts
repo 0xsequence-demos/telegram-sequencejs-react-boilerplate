@@ -2,7 +2,11 @@ import { Object3D, PerspectiveCamera } from "three";
 
 export default class CameraTruck extends Object3D {
   virtualPivot: Object3D;
-  constructor(camera: PerspectiveCamera, camDist: number, boomDist: number) {
+  constructor(
+    camera: PerspectiveCamera,
+    camDist: number,
+    public boomDist: number,
+  ) {
     super();
     const virtualPivot = new Object3D();
     this.virtualPivot = virtualPivot;

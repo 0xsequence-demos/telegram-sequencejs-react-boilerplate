@@ -77,13 +77,19 @@ export function getGameEngine() {
         _gameEngine.game = game;
         game.party = oldGame.party;
         game.partyFloat.value = oldGame.partyFloat.value;
-        game.charHolder.position.copy(oldGame.charHolder.position);
-        game.charHolder.rotation.copy(oldGame.charHolder.rotation);
+        game.playerController.charHolder.position.copy(
+          oldGame.playerController.charHolder.position,
+        );
+        game.playerController.charHolder.rotation.copy(
+          oldGame.playerController.charHolder.rotation,
+        );
         game.camTruck.position.copy(oldGame.camTruck.position);
         game.camTruck.rotation.copy(oldGame.camTruck.rotation);
         game.camera.position.copy(oldGame.camera.position);
-        game.onCoinBalanceChange = oldGame.onCoinBalanceChange;
-        game.coinBalance = oldGame.coinBalance;
+        game.playerController.charHolder.onCoinBalanceChange =
+          oldGame.playerController.charHolder.onCoinBalanceChange;
+        game.playerController.charHolder.coinBalance =
+          oldGame.playerController.charHolder.coinBalance;
       });
     }
     gameEngine = _gameEngine;

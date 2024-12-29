@@ -5,10 +5,10 @@ import { randFloatSpread } from "three/src/math/MathUtils.js";
 export default class Coin extends Object3D {
   rotOffset = Math.random() * Math.PI * 2;
   material: MeshStandardMaterial;
-  constructor(shadows = false, gentle = false) {
+  constructor(shadows = false, gentle = false, hq = false) {
     super();
     this.name = "coin";
-    const g = getChamferedCylinderGeometry(0.8, 0.2, 16, 8, 0.05);
+    const g = getChamferedCylinderGeometry(0.8, 0.2, hq ? 32 : 16, 8, 0.075);
     const material = new MeshStandardMaterial({
       color: 0xffff2c,
       roughness: 0.125,
