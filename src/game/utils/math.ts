@@ -56,3 +56,7 @@ export function wrapRange(val: number, min: number, max: number) {
 export function dist2(x: number, y: number) {
   return Math.sqrt(x * x + y * y);
 }
+
+export function dist2Manhattan(x: number, y: number) {
+  return Math.abs(x) + Math.abs(y);
+}

@@ -59,8 +59,8 @@ importers:
         specifier: ^18.3.1
         version: 18.3.1(react@18.3.1)
       three:
-        specifier: ^0.170.0
-        version: 0.170.0
+        specifier: horizon-games/three.js#feature-dithered-hole
+        version: https://codeload.github.com/horizon-games/three.js/tar.gz/81da8e85b61da1503d40dbb0f7ac2a5e4bb96573
       viem:
         specifier: ^2.21.54
         version: 2.21.54(bufferutil@4.0.8)(typescript@5.7.2)(utf-8-validate@5.0.10)(zod@3.23.8)
@@ -4160,8 +4160,9 @@ packages:
   thread-stream@0.15.2:
     resolution: {integrity: sha512-UkEhKIg2pD+fjkHQKyJO3yoIvAP3N6RlNFt2dUhcS1FGvCD1cQa1M/PGknCLFIyZdtJOWQjejp7bdNqmN7zwdA==}
 
-  three@0.170.0:
-    resolution: {integrity: sha512-FQK+LEpYc0fBD+J8g6oSEyyNzjp+Q7Ks1C568WWaoMRLW+TkNNWmenWeGgJjV105Gd+p/2ql1ZcjYvNiPZBhuQ==}
+  three@https://codeload.github.com/horizon-games/three.js/tar.gz/81da8e85b61da1503d40dbb0f7ac2a5e4bb96573:
+    resolution: {tarball: https://codeload.github.com/horizon-games/three.js/tar.gz/81da8e85b61da1503d40dbb0f7ac2a5e4bb96573}
+    version: 0.171.0
 
   to-regex-range@5.0.1:
     resolution: {integrity: sha512-65P7iz6X5yEr1cwcgvQxbbIw7Uk3gOy5dIdtZ4rDveLqhrdJP+Li/Hx6tyK0NEb+2GCyneCMJiGqrADCSNk8sQ==}
@@ -9671,7 +9672,7 @@ snapshots:
     dependencies:
       real-require: 0.1.0
 
-  three@0.170.0: {}
+  three@https://codeload.github.com/horizon-games/three.js/tar.gz/81da8e85b61da1503d40dbb0f7ac2a5e4bb96573: {}
 
   to-regex-range@5.0.1:
     dependencies:

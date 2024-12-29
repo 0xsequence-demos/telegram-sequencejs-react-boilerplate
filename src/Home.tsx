@@ -105,7 +105,8 @@ const Home = () => {
 
   useEffect(() => {
     // getGameEngine().game.party = true;
-    getGameEngine().game.onCoinBalanceChange = setCoinBalance;
+    getGameEngine().game.playerController.charHolder.onCoinBalanceChange =
+      setCoinBalance;
   }, [walletAddress]);
 
   return (
