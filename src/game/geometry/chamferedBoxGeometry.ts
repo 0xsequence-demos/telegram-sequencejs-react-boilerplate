@@ -8,6 +8,7 @@ export async function createChamferedBoxGeometry(
   depth: number,
   chamfer = 0.005,
   bias = 0,
+  offsetY = 0,
 ) {
   const gltf = await loadGLTF("chamfered-box-base.glb");
   const proto = gltf.scene.children[0];
@@ -29,7 +30,7 @@ export async function createChamferedBoxGeometry(
     tempPos.multiplyScalar(chamfer);
     const sz = Math.sign(tempPos.x);
     tempPos.x += halfWidth * Math.sign(tempPos.x);
-    tempPos.y += halfHeight * Math.sign(tempPos.y);
+    tempPos.y += halfHeight * Math.sign(tempPos.y) + offsetY;
     tempPos.z += halfDepth * Math.sign(tempPos.z) + b * sz;
     tempPos.toArray(posArr, i3);
   }

@@ -10,6 +10,7 @@ import World from "../World";
 import AnimationManager from "../AnimationManager";
 import { removeFromArray } from "../removeFromArray";
 import Animation from "../Animation";
+import Tree from "../Tree";
 
 const __walkSpeed = 0.5;
 
@@ -120,12 +121,35 @@ export class CharacterHolder extends Object3D {
     const tileMeshExists = this.world.mapCache.has(locationKey)!;
     if (tileMeshExists) {
       if (this.world.availableTrees.includes(locationKey)) {
+        console.log("chop");
         const tileMesh = this.world.mapCache.get(locationKey)!;
-        const tree = tileMesh.getObjectByName("treeTrunk")!;
+        const tree = tileMesh.getObjectByName("tree")!;
         const p = tree.position.clone();
         p.applyMatrix4(tree.parent!.matrixWorld);
         const dist = xzDist(p, this.position);
         if (dist <= 1.8) {
+          if (tree instanceof Tree) {
+            if (tree.health > 0) {
+              tree.shake = 0.2;
+              tree.health--;
+            } else {
+              removeFromArray(this.world.availableTrees, locationKey);
+              this.scene.attach(tree);
+              const origin = tree.position.clone();
+              this.animationManager.animations.push(
+                new Animation(
+                  (v) => {
+                    tree.scale.setScalar(1 - v * 0.75);
+                    tree.position.copy(origin);
+                    tree.position.y += v * 10;
+                    tree.position.lerp(this.position, v * v);
+                  },
+                  () => this.scene.remove(tree),
+                  0.02,
+                ),
+              );
+            }
+          }
           const dx = p.x - this.position.x;
           const dz = p.z - this.position.z;
           const a = Math.atan2(dz, dx);
