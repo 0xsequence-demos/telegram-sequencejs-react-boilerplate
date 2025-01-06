@@ -1,4 +1,4 @@
-import { Color, DoubleSide, Mesh, MeshStandardMaterial, Vector4 } from "three";
+import { Color, DoubleSide, Mesh, MeshStandardMaterial } from "three";
 import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
 import { lerp, wrapRange } from "./utils/math";
 import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
@@ -7,7 +7,8 @@ import { randFloatSpread } from "three/src/math/MathUtils.js";
 // import Coin from "./Coin";
 import { clamp } from "./clamp";
 import { geometryRecipes } from "./geometryRecipes";
-const ditheredHole = new Vector4(0, -0.5, 0.5, 11.5);
+import Tree from "./Tree";
+import { ditheredHole } from "./ditheredHole";
 export function makeTile(ix: number, iy: number) {
   const x = ix * distPerTile;
   const y = iy * distPerTile;
@@ -30,55 +31,9 @@ export function makeTile(ix: number, iy: number) {
     (g) => (mesh.geometry = g),
   );
   if (wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) <= 4) {
-    getChamferedBoxGeometry(4, 2, 4, 0.5).then((g) => {
-      const leafMat = new MeshStandardMaterial({
-        color: 0x17ae2c,
-        roughness: 0.75,
-        metalness: 0,
-        emissive: 0x171e2c,
-        side: DoubleSide,
-        ditheredHole,
-      });
-      for (let i = 0; i < 5; i++) {
-        const leaves = new Mesh(g, leafMat);
-        leaves.position.set(
-          randFloatSpread(6),
-          randFloatSpread(4) + 6,
-          randFloatSpread(6),
-        );
-        leaves.rotation.set(
-          randFloatSpread(1),
-          randFloatSpread(1),
-          randFloatSpread(1),
-        );
-        mesh.add(leaves);
-        leaves.receiveShadow = true;
-        leaves.castShadow = true;
-      }
-    });
-    getChamferedBoxGeometry(1, 6, 1, 0.25).then((g) => {
-      const trunk = new Mesh(
-        g,
-        new MeshStandardMaterial({
-          color: 0x572e2c,
-          roughness: 0.75,
-          metalness: 0,
-          emissive: 0x171e2c,
-          side: DoubleSide,
-          ditheredHole,
-        }),
-      );
-      trunk.name = "treeTrunk";
-      trunk.position.set(randFloatSpread(1), 4, randFloatSpread(1));
-      trunk.rotation.set(
-        randFloatSpread(0.4),
-        randFloatSpread(0.4),
-        randFloatSpread(0.4),
-      );
-      mesh.add(trunk);
-      trunk.receiveShadow = true;
-      trunk.castShadow = true;
-    });
+    const tree = new Tree();
+    mesh.add(tree);
+    tree.position.y = -3;
     mesh.userData.tree = true;
   } else if (
     wrapRange(ix * 47 + iy * 19 + 91, 0, wrapRange(ix + iy, 24, 31)) < 3
