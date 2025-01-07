@@ -120,7 +120,10 @@ export class CharacterHolder extends Object3D {
     }
     const tileMeshExists = this.world.mapCache.has(locationKey)!;
     if (tileMeshExists) {
-      if (this.world.availableTrees.includes(locationKey)) {
+      if (
+        this.world.knownTrees.includes(locationKey) &&
+        !this.world.harvestedTrees.includes(locationKey)
+      ) {
         console.log("chop");
         const tileMesh = this.world.mapCache.get(locationKey)!;
         const tree = tileMesh.getObjectByName("tree")!;
@@ -133,7 +136,7 @@ export class CharacterHolder extends Object3D {
               tree.shake = 0.2;
               tree.health--;
             } else {
-              removeFromArray(this.world.availableTrees, locationKey);
+              this.world.harvestedTrees.push(locationKey);
               this.scene.attach(tree);
               const origin = tree.position.clone();
               this.animationManager.animations.push(

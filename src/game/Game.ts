@@ -275,7 +275,7 @@ export default class Game {
           const key = `${ix};${iy}`;
           const tileExists = world.mapCache.has(key);
           if (!tileExists && tileScale > 0) {
-            const mesh = makeTile(ix, iy);
+            const mesh = makeTile(ix, iy, world.harvestedTrees.includes(key));
             // const mesh = makeTile(ix, iy, !world.foundCoins.includes(key));
             // if (mesh.userData.coin && !world.knownCoins.includes(key)) {
             //   world.knownCoins.push(key);
@@ -283,7 +283,6 @@ export default class Game {
             // }
             if (mesh.userData.tree && !world.knownTrees.includes(key)) {
               world.knownTrees.push(key);
-              world.availableTrees.push(key);
             }
             if (mesh.userData.tower && !world.knownTowers.includes(key)) {
               world.knownTowers.push(key);
