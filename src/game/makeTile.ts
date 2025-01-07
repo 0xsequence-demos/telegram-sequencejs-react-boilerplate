@@ -1,4 +1,4 @@
-import { Color, DoubleSide, Mesh, MeshStandardMaterial } from "three";
+import { Color, DoubleSide, Euler, Mesh, MeshStandardMaterial } from "three";
 import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
 import { lerp, wrapRange } from "./utils/math";
 import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
@@ -9,7 +9,7 @@ import { clamp } from "./clamp";
 import { geometryRecipes } from "./geometryRecipes";
 import Tree from "./Tree";
 import { ditheredHole } from "./ditheredHole";
-export function makeTile(ix: number, iy: number) {
+export function makeTile(ix: number, iy: number, harvested = false) {
   const x = ix * distPerTile;
   const y = iy * distPerTile;
 
@@ -31,10 +31,51 @@ export function makeTile(ix: number, iy: number) {
     (g) => (mesh.geometry = g),
   );
   if (wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) <= 4) {
-    const tree = new Tree();
-    mesh.add(tree);
-    tree.position.y = -3;
-    mesh.userData.tree = true;
+    const rot = new Euler(
+      randFloatSpread(0.4),
+      randFloatSpread(0.4),
+      randFloatSpread(0.4),
+    );
+    getChamferedBoxGeometry(1.2, 3.2, 1.2, 0.25, 0, 3).then((g) => {
+      const stump = new Mesh(
+        g,
+        new MeshStandardMaterial({
+          color: 0x572e2c,
+          roughness: 0.75,
+          metalness: 0,
+          emissive: 0x171e2c,
+          side: DoubleSide,
+        }),
+      );
+      stump.name = "treeStump";
+      stump.rotation.copy(rot);
+      stump.position.y = -3;
+      mesh.add(stump);
+      getChamferedBoxGeometry(0.9, 3.4, 0.9, 0.25, 0, 3).then((g) => {
+        const stumpCore = new Mesh(
+          g,
+          new MeshStandardMaterial({
+            color: 0xa76e2c,
+            roughness: 0.75,
+            metalness: 0,
+            emissive: 0x171e2c,
+            side: DoubleSide,
+          }),
+        );
+        stumpCore.name = "treeStumpCore";
+        stump.add(stumpCore);
+        stump.receiveShadow = true;
+        stumpCore.receiveShadow = true;
+        stump.castShadow = true;
+      });
+    });
+    if (!harvested) {
+      const tree = new Tree();
+      tree.rotation.copy(rot);
+      mesh.add(tree);
+      tree.position.y = -3;
+      mesh.userData.tree = true;
+    }
   } else if (
     wrapRange(ix * 47 + iy * 19 + 91, 0, wrapRange(ix + iy, 24, 31)) < 3
   ) {

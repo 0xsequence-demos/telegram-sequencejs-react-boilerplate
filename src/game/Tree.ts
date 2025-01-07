@@ -24,23 +24,17 @@ export default class Tree extends Object3D {
         }),
       );
       trunk.name = "treeTrunk";
-      trunk.position.set(randFloatSpread(1), 4, randFloatSpread(1));
-      trunk.rotation.set(
-        randFloatSpread(0.4),
-        randFloatSpread(0.4),
-        randFloatSpread(0.4),
-      );
-      const rotationRef = trunk.rotation.clone();
+      trunk.position.y = 4;
+      trunk.receiveShadow = true;
+      trunk.castShadow = true;
       trunk.onBeforeRender = () => {
         const t = performance.now() * 0.005;
         const posDelay =
           (this.parent!.position.x + this.parent!.position.z) * 0.05;
         trunk.rotation.x =
-          rotationRef.x +
           Math.sin(t * 0.75 + posDelay) * treeSwayStrength +
           Math.sin(t * 15.5 + posDelay) * this.shake * 0.1;
         trunk.rotation.z =
-          rotationRef.z +
           Math.cos(t + posDelay) * treeSwayStrength +
           Math.cos(t * 15.5) * this.shake * 0.1;
         // trunk.position.y = rotationRef.y + Math.sin(t * 0.75);
@@ -76,13 +70,10 @@ export default class Tree extends Object3D {
             const t = performance.now() * 0.01 + offsetR;
             const posDelay = this.position.x + this.position.z * 0.2;
             leaves.rotation.x =
-              rotationRef.x +
               Math.sin(t * 0.75 + posDelay) * leafSwayStrength +
               Math.sin(t * 5.5 + posDelay) * this.shake;
             leaves.rotation.z =
-              rotationRef.z +
-              Math.cos(t) * leafSwayStrength +
-              Math.cos(t * 5.5) * this.shake;
+              Math.cos(t) * leafSwayStrength + Math.cos(t * 5.5) * this.shake;
             // trunk.position.y = rotationRef.y + Math.sin(t * 0.75);
           };
           leaves.receiveShadow = true;
