@@ -7,8 +7,9 @@ export default class Animation {
     private _onUpdate: (v: number) => void,
     private _onComplete: (a: Animation) => void,
     speed = 0.01,
+    delay = 0,
   ) {
-    this.anim = new AnimatedNumber(0, speed);
+    this.anim = new AnimatedNumber(-delay, speed);
     this.anim.target = 1;
   }
   update(dt: number) {

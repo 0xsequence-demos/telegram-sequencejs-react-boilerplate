@@ -11,6 +11,8 @@ import AnimationManager from "../AnimationManager";
 import { removeFromArray } from "../removeFromArray";
 import Animation from "../Animation";
 import Tree from "../Tree";
+import Safe from "../Safe";
+import Chest from "../Chest";
 
 const __walkSpeed = 0.5;
 
@@ -89,7 +91,7 @@ export class CharacterHolder extends Object3D {
       const p = coin.position.clone();
       p.applyMatrix4(coin.parent!.matrixWorld);
       if (xzDist(p, this.position) <= 1.8) {
-        console.log("ding");
+        // console.log("ding");
         this.world.itemsToDelete.push(coin);
         this.scene.attach(coin);
         const origin = coin.position.clone();
@@ -121,10 +123,85 @@ export class CharacterHolder extends Object3D {
     const tileMeshExists = this.world.mapCache.has(locationKey)!;
     if (tileMeshExists) {
       if (
+        this.world.knownChests.includes(locationKey) &&
+        !this.world.openedChests.includes(locationKey)
+      ) {
+        // console.log("open");
+        const tileMesh = this.world.mapCache.get(locationKey)!;
+        const chest = tileMesh.getObjectByName("chest")!;
+        const p = chest.position.clone();
+        p.applyMatrix4(chest.parent!.matrixWorld);
+        const dist = xzDist(p, this.position);
+        if (dist <= 2.2) {
+          if (chest instanceof Chest) {
+            if (chest.health > 0) {
+              chest.shake = 0.2;
+              chest.health--;
+            } else {
+              this.world.openedChests.push(locationKey);
+              this.scene.attach(chest);
+              chest.open();
+              const origin = chest.position.clone();
+              const origScale = chest.scale.x;
+              const hinges = chest.getObjectByName("hinges");
+              if (hinges) {
+                this.animationManager.animations.push(
+                  new Animation(
+                    (v) => {
+                      hinges.rotation.x = v * 2;
+                    },
+                    () => {
+                      this.animationManager.animations.push(
+                        new Animation(
+                          (v) => {
+                            const v2 = v * v * v * v;
+                            chest.scale.setScalar((1 - v2 * 0.95) * origScale);
+                            chest.position.copy(origin);
+                            chest.position.y -= v2 * 0.2;
+                            // chest.position.lerp(this.position, v * v);
+                          },
+                          () => this.scene.remove(chest),
+                          0.01,
+                        ),
+                      );
+                    },
+                    0.02,
+                  ),
+                );
+              }
+            }
+          }
+          const dx = p.x - this.position.x;
+          const dz = p.z - this.position.z;
+          const a = Math.atan2(dz, dx);
+          const gap = dist - 2.2;
+          this.position.x += Math.cos(a) * gap;
+          this.position.z += Math.sin(a) * gap;
+        }
+      } else if (this.world.knownSafes.includes(locationKey)) {
+        // console.log("deposit");
+        const tileMesh = this.world.mapCache.get(locationKey)!;
+        const safe = tileMesh.getObjectByName("safe")!;
+        const p = safe.position.clone();
+        p.applyMatrix4(safe.parent!.matrixWorld);
+        const dist = xzDist(p, this.position);
+        if (dist <= 3.2) {
+          if (safe instanceof Safe) {
+            safe.shake = 0.2;
+            safe.deposit();
+          }
+          const dx = p.x - this.position.x;
+          const dz = p.z - this.position.z;
+          const a = Math.atan2(dz, dx);
+          const gap = dist - 3.2;
+          this.position.x += Math.cos(a) * gap;
+          this.position.z += Math.sin(a) * gap;
+        }
+      } else if (
         this.world.knownTrees.includes(locationKey) &&
         !this.world.harvestedTrees.includes(locationKey)
       ) {
-        console.log("chop");
+        // console.log("chop");
         const tileMesh = this.world.mapCache.get(locationKey)!;
         const tree = tileMesh.getObjectByName("tree")!;
         const p = tree.position.clone();
@@ -160,8 +237,7 @@ export class CharacterHolder extends Object3D {
           this.position.x += Math.cos(a) * gap;
           this.position.z += Math.sin(a) * gap;
         }
-      }
-      if (this.world.availableTowers.includes(locationKey)) {
+      } else if (this.world.availableTowers.includes(locationKey)) {
         const tileMesh = this.world.mapCache.get(locationKey)!;
         const tower = tileMesh.getObjectByName("tower")!;
         for (let i = 0; i < 4; i++) {

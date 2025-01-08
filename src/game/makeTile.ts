@@ -9,6 +9,8 @@ import { clamp } from "./clamp";
 import { geometryRecipes } from "./geometryRecipes";
 import Tree from "./Tree";
 import { ditheredHole } from "./ditheredHole";
+import Safe from "./Safe";
+import Chest from "./Chest";
 export function makeTile(ix: number, iy: number, harvested = false) {
   const x = ix * distPerTile;
   const y = iy * distPerTile;
@@ -30,7 +32,27 @@ export function makeTile(ix: number, iy: number, harvested = false) {
   getChamferedBoxGeometry(distPerTile, 2, distPerTile, 0.25).then(
     (g) => (mesh.geometry = g),
   );
-  if (wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) <= 4) {
+  if (wrapRange(ix, 0, 20) === 0 && wrapRange(iy, 0, 20) === 4) {
+    const safe = new Safe();
+    safe.scale.setScalar(2);
+    safe.position.set(0, 1, 0);
+    safe.rotation.y = Math.PI;
+    safe.name = "safe";
+    mesh.add(safe);
+    mesh.userData.safe = true;
+  } else if (wrapRange(ix, 0, 10) === 0 && wrapRange(iy, 0, 10) === 1) {
+    if (!harvested) {
+      const chest = new Chest(wrapRange(ix * 37 + iy * 19 + 18, 0, 3));
+      chest.scale.setScalar(1.5);
+      chest.position.set(0, 1, 0);
+      // chest.rotation.y = Math.PI;
+      chest.name = "chest";
+      mesh.add(chest);
+      mesh.userData.chest = true;
+    }
+  } else if (
+    wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) <= 4
+  ) {
     const rot = new Euler(
       randFloatSpread(0.4),
       randFloatSpread(0.4),

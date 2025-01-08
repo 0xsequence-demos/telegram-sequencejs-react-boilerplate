@@ -39,7 +39,10 @@ import World from "./World";
 import AnimationManager from "./AnimationManager";
 import PlayerCharacterController from "./PlayerCharacterController";
 import BotCharacterController from "./BotCharacterController";
+import Chest from "./Chest";
 import { randFloatSpread } from "three/src/math/MathUtils.js";
+import Animation from "./Animation";
+import Safe from "./Safe";
 
 const debug = searchParams.has("debug");
 const mouseTouch = searchParams.has("mouseTouch");
@@ -158,6 +161,7 @@ export default class Game {
 
     let lastTime = performance.now() * 0.001;
     const world = new World();
+
     const animationManager = new AnimationManager();
 
     const playerCharHolder = new CharacterHolder(
@@ -184,23 +188,84 @@ export default class Game {
       this.allControllers.push(bc);
     }
 
-    function makeCoins() {
-      for (let i = 0; i < 1000; i++) {
+    function makeCoins(
+      x: number,
+      z: number,
+      count: number,
+      radiusMin: number,
+      radiusMax: number,
+    ) {
+      for (let i = 0; i < count; i++) {
         const coin = new Coin(true, false, false);
-        coin.position.x = randFloatSpread(20);
-        coin.position.y = 1.5;
-        coin.position.z = randFloatSpread(20);
+        const r = Math.random();
+        const dist = lerp(radiusMin, radiusMax, 1 - r * r);
+        const a = Math.random() * Math.PI * 2;
+        const dest = new Vector3(
+          Math.cos(a) * dist + x + randFloatSpread(4),
+          1.5,
+          Math.sin(a) * dist + z + randFloatSpread(4),
+        );
+
+        coin.position.x = x;
+        coin.position.y = 0.5;
+        coin.position.z = z;
         scene.add(coin);
-        world.items.push(coin);
+
+        const origin = coin.position.clone();
+        animationManager.animations.push(
+          new Animation(
+            (v) => {
+              const iv = 1 - v;
+              coin.scale.setScalar(1 - iv * iv);
+              coin.position.copy(origin);
+              coin.position.y += v * 10;
+              coin.position.lerp(dest, v * v);
+            },
+            () => world.items.push(coin),
+            0.03,
+            Math.random() * 0.45,
+          ),
+        );
+      }
+    }
+
+    function takeCoins(x: number, z: number, count: number) {
+      const total = Math.min(playerCharHolder.coinBalance, count);
+      playerCharHolder.coinBalance -= total;
+      const dest = new Vector3(x, 3.5, z);
+      for (let i = 0; i < total; i++) {
+        const coin = new Coin(true, false, false);
+
+        coin.position.x = playerCharHolder.position.x;
+        coin.position.y = 0.5;
+        coin.position.z = playerCharHolder.position.z;
+        scene.add(coin);
+
+        animationManager.animations.push(
+          new Animation(
+            (v) => {
+              const iv = 1 - v;
+              coin.scale.setScalar(1 - iv * iv);
+              coin.position.copy(playerCharHolder.position);
+              coin.position.y += v * 20;
+              coin.position.lerp(dest, v * v);
+            },
+            () => {
+              scene.remove(coin);
+            },
+            0.03,
+            Math.random() * 0.45,
+          ),
+        );
+        if (playerCharHolder.coinBalance > 0) {
+          setTimeout(() => takeCoins(x, z, count), 10);
+        }
       }
     }
 
     this.render = (renderer: WebGLRenderer) => {
       if (this.paused) {
         return;
-      }
-      if (world.items.length === 0) {
-        makeCoins();
       }
       const time = performance.now() * 0.001;
       const deltaTime = time - lastTime;
@@ -275,12 +340,49 @@ export default class Game {
           const key = `${ix};${iy}`;
           const tileExists = world.mapCache.has(key);
           if (!tileExists && tileScale > 0) {
-            const mesh = makeTile(ix, iy, world.harvestedTrees.includes(key));
+            const mesh = makeTile(
+              ix,
+              iy,
+              world.harvestedTrees.includes(key) ||
+                world.openedChests.includes(key),
+            );
             // const mesh = makeTile(ix, iy, !world.foundCoins.includes(key));
             // if (mesh.userData.coin && !world.knownCoins.includes(key)) {
             //   world.knownCoins.push(key);
             //   world.availableCoins.push(key);
             // }
+            if (mesh.userData.safe) {
+              if (!world.knownSafes.includes(key)) {
+                world.knownSafes.push(key);
+              }
+              const safe = mesh.getObjectByName("safe");
+              if (safe instanceof Safe) {
+                safe.onDeposit(() => {
+                  takeCoins(
+                    safe.parent!.position.x,
+                    safe.parent!.position.z,
+                    10,
+                  );
+                });
+              }
+            }
+            if (mesh.userData.chest) {
+              if (!world.knownChests.includes(key)) {
+                world.knownChests.push(key);
+              }
+              const chest = mesh.getObjectByName("chest");
+              if (chest instanceof Chest) {
+                chest.onOpen(() => {
+                  makeCoins(
+                    chest.position.x,
+                    chest.position.z,
+                    20 + 50 * chest.rarity,
+                    4,
+                    10,
+                  );
+                });
+              }
+            }
             if (mesh.userData.tree && !world.knownTrees.includes(key)) {
               world.knownTrees.push(key);
             }

@@ -28,6 +28,9 @@ export default class Tree extends Object3D {
       trunk.receiveShadow = true;
       trunk.castShadow = true;
       trunk.onBeforeRender = () => {
+        if (this.shake > 0) {
+          this.shake -= 0.004;
+        }
         const t = performance.now() * 0.005;
         const posDelay =
           (this.parent!.position.x + this.parent!.position.z) * 0.05;
@@ -64,9 +67,6 @@ export default class Tree extends Object3D {
           trunk.add(leaves);
           const offsetR = Math.random();
           leaves.onBeforeRender = () => {
-            if (this.shake > 0) {
-              this.shake -= 0.001;
-            }
             const t = performance.now() * 0.01 + offsetR;
             const posDelay = this.position.x + this.position.z * 0.2;
             leaves.rotation.x =
