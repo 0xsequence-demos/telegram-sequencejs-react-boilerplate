@@ -1,5 +1,5 @@
 diff --git a/src/materials/Material.d.ts b/src/materials/Material.d.ts
-index 731bcc89e166bc9cfce9746ba4c599b47faa24cc..b673aa9bb2b41e484895dd53e849b253da5084bb 100644
+index 731bcc89e166bc9cfce9746ba4c599b47faa24cc..93cfa9e4e2373b0675f9c4b18ca3940ce3c602bd 100644
 --- a/src/materials/Material.d.ts
 +++ b/src/materials/Material.d.ts
 @@ -16,12 +16,13 @@ import { BufferGeometry } from "../core/BufferGeometry.js";
@@ -25,3 +25,16 @@ index 731bcc89e166bc9cfce9746ba4c599b47faa24cc..b673aa9bb2b41e484895dd53e849b253
      side?: Side | undefined;
      shadowSide?: Side | undefined;
      toneMapped?: boolean | undefined;
+@@ -483,6 +485,12 @@ export class Material extends EventDispatcher<{ dispose: {} }> {
+      */
+     dithering: boolean;
+ 
++    /**
++     * Parameters for a dithered hole. vec4 xyzw is clipX, clipY, radius and depth, respectively. Default is undefined.
++     * @default undefined
++     */
++    ditheredHole: undefined | Vector4;
++
+     /**
+      * Defines which of the face sides will be rendered - front, back or both.
+      * Default is {@link THREE.FrontSide}. Other options are {@link THREE.BackSide} and {@link THREE.DoubleSide}.
