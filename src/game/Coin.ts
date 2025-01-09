@@ -8,6 +8,7 @@ export default class Coin extends Object3D {
   constructor(shadows = false, gentle = false, hq = false) {
     super();
     this.name = "coin";
+    this.userData.coin = true;
     const g = getChamferedCylinderGeometry(0.8, 0.2, hq ? 32 : 16, 8, 0.075);
     const material = new MeshStandardMaterial({
       color: 0xffff2c,

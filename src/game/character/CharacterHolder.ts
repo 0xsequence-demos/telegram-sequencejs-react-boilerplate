@@ -214,20 +214,89 @@ export class CharacterHolder extends Object3D {
               tree.health--;
             } else {
               this.world.harvestedTrees.push(locationKey);
-              this.scene.attach(tree);
-              const origin = tree.position.clone();
-              this.animationManager.animations.push(
-                new Animation(
-                  (v) => {
-                    tree.scale.setScalar(1 - v * 0.75);
-                    tree.position.copy(origin);
-                    tree.position.y += v * 10;
-                    tree.position.lerp(this.position, v * v);
-                  },
-                  () => this.scene.remove(tree),
-                  0.02,
-                ),
-              );
+              const leaves: Object3D[] = [];
+              tree.traverse((n) => {
+                if (n.name.includes("leaves")) {
+                  leaves.push(n);
+                }
+              });
+              for (const n of leaves) {
+                this.scene.attach(n);
+                const origin = n.position.clone();
+                const dest = tileMesh.position.clone();
+                dest.sub(n.position);
+                dest.y = 0;
+                dest.normalize().multiplyScalar(-6);
+                dest.add(tileMesh.position);
+                dest.y = 3;
+                this.animationManager.animations.push(
+                  new Animation(
+                    (v) => {
+                      n.scale.setScalar(1 - v);
+                      n.position.copy(origin);
+                      n.position.y += v * 10;
+                      n.position.lerp(dest, v * v);
+                    },
+                    () => this.scene.remove(n),
+                    0.02,
+                  ),
+                );
+              }
+              loadGLTF("tree-basic.glb").then((gltf) => {
+                const wood: Object3D[] = [];
+                const treeMesh = tree.getObjectByName("tree")!.children[0];
+                gltf.scene.traverse((n) => {
+                  n.receiveShadow = true;
+                  n.castShadow = true;
+                  if (
+                    (n.name.includes("wood") || n.name.includes("stump")) &&
+                    !n.name.includes("_")
+                  ) {
+                    const myWood = n.clone();
+                    wood.push(myWood);
+                    treeMesh.add(myWood);
+                    this.scene.attach(myWood);
+                    if (n.name.includes("stump")) {
+                      tree.attach(myWood);
+                    } else {
+                      const origin = myWood.position.clone();
+                      const origRot = myWood.rotation.clone();
+                      const dest = tileMesh.position.clone();
+                      dest.sub(myWood.position);
+                      dest.y = 0;
+                      dest.normalize().multiplyScalar(-1 * myWood.position.y);
+                      dest.add(tileMesh.position);
+                      dest.y = 0;
+                      const playerVec = this.position.clone();
+                      playerVec.sub(tileMesh.position);
+                      playerVec.y = 0;
+                      playerVec.normalize().multiplyScalar(-4);
+                      dest.add(playerVec);
+                      const newRotY = Math.random() * Math.PI * 2;
+                      this.animationManager.animations.push(
+                        new Animation(
+                          (v) => {
+                            const iv = 1 - v;
+                            myWood.position.copy(origin);
+                            myWood.position.y += v * 3;
+                            myWood.position.lerp(dest, v * v);
+                            myWood.rotation.copy(origRot);
+                            myWood.rotation.x *= iv;
+                            myWood.rotation.y *= iv;
+                            myWood.rotation.y += v * newRotY;
+                            myWood.rotation.z *= iv;
+                          },
+                          () => {
+                            this.world.items.push(myWood);
+                          },
+                          0.2 / myWood.position.y,
+                        ),
+                      );
+                    }
+                  }
+                });
+                treeMesh.parent!.remove(treeMesh);
+              });
             }
           }
           const dx = p.x - this.position.x;

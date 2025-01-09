@@ -415,7 +415,8 @@ export default class Game {
         const dy = playerY - item.position.z;
         const itemScale = (mapReachDist - dist2(dx, dy)) / mapReachDist;
         item.scale.setScalar(1 - Math.pow(1 - itemScale, 3));
-        item.position.y = -5 * Math.pow(1 - itemScale, 3) + 1;
+        item.position.y =
+          -5 * Math.pow(1 - itemScale, 3) + (item.userData.coin ? 1 : 0);
       }
       if (partyAnim > 0.001) {
         __tempColor.setHSL(time * 0.5, 0.5, 0.75);
