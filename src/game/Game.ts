@@ -43,6 +43,7 @@ import Chest from "./Chest";
 import { randFloatSpread } from "three/src/math/MathUtils.js";
 import Animation from "./Animation";
 import Safe from "./Safe";
+import { sharedGameState } from "./sharedGameState";
 
 const debug = searchParams.has("debug");
 const mouseTouch = searchParams.has("mouseTouch");
@@ -72,6 +73,15 @@ export default class Game {
   worldspaceUiCoinTarget: Object3D;
   activeTouchIds: number[] = [];
   idledTime = 10;
+  onDepositCallbacks: Array<() => void> = [];
+  onDeposit(callback: () => void) {
+    this.onDepositCallbacks.push(callback);
+  }
+  dispatchDeposit = () => {
+    for (const cb of this.onDepositCallbacks) {
+      cb();
+    }
+  };
 
   constructor() {
     const uiScene = new Scene();
@@ -169,6 +179,7 @@ export default class Game {
       world,
       animationManager,
       worldspaceUiCoinTarget,
+      sharedGameState.coinsInPocket,
     );
     scene.add(playerCharHolder);
 
@@ -221,7 +232,7 @@ export default class Game {
               coin.position.y += v * 10;
               coin.position.lerp(dest, v * v);
             },
-            () => world.items.push(coin),
+            () => world.addItem(coin),
             0.03,
             Math.random() * 0.45,
           ),
@@ -230,9 +241,11 @@ export default class Game {
     }
 
     function takeCoins(x: number, z: number, count: number) {
-      const total = Math.min(playerCharHolder.coinBalance, count);
-      playerCharHolder.coinBalance -= total;
+      const total = Math.min(sharedGameState.coinsInPocket.value, count);
+      sharedGameState.coinsInPocket.value -= total;
+      sharedGameState.coinsInSafe.expected.value += total;
       const dest = new Vector3(x, 3.5, z);
+      const delayRange = Math.cbrt(count) * 0.2;
       for (let i = 0; i < total; i++) {
         const coin = new Coin(true, false, false);
 
@@ -241,25 +254,33 @@ export default class Game {
         coin.position.z = playerCharHolder.position.z;
         scene.add(coin);
 
+        const spreadX = randFloatSpread(3);
+        const spreadY = randFloatSpread(3) + 20;
+        const spreadZ = randFloatSpread(3);
         animationManager.animations.push(
           new Animation(
-            (v) => {
+            (_v) => {
+              const v = Math.max(0, _v);
+              if (v <= 0) {
+                coin.scale.setScalar(0.001);
+                coin.position.y = -100;
+                return;
+              }
               const iv = 1 - v;
               coin.scale.setScalar(1 - iv * iv);
               coin.position.copy(playerCharHolder.position);
-              coin.position.y += v * 20;
+              coin.position.x += v * spreadX;
+              coin.position.y += v * spreadY;
+              coin.position.z += v * spreadZ;
               coin.position.lerp(dest, v * v);
             },
             () => {
               scene.remove(coin);
             },
             0.03,
-            Math.random() * 0.45,
+            Math.random() * 0.45 + delayRange * (i / count),
           ),
         );
-        if (playerCharHolder.coinBalance > 0) {
-          setTimeout(() => takeCoins(x, z, count), 10);
-        }
       }
     }
 
@@ -361,9 +382,10 @@ export default class Game {
                   takeCoins(
                     safe.parent!.position.x,
                     safe.parent!.position.z,
-                    10,
+                    sharedGameState.coinsInPocket.value,
                   );
                 });
+                safe.onDeposit(this.dispatchDeposit);
               }
             }
             if (mesh.userData.chest) {
@@ -414,7 +436,9 @@ export default class Game {
         const dx = playerX - item.position.x;
         const dy = playerY - item.position.z;
         const itemScale = (mapReachDist - dist2(dx, dy)) / mapReachDist;
-        item.scale.setScalar(1 - Math.pow(1 - itemScale, 3));
+        item.scale.setScalar(
+          (1 - Math.pow(1 - itemScale, 3)) * item.userData.defaultScale,
+        );
         item.position.y =
           -5 * Math.pow(1 - itemScale, 3) + (item.userData.coin ? 1 : 0);
       }

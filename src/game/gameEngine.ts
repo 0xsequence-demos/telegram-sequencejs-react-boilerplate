@@ -86,10 +86,6 @@ export function getGameEngine() {
         game.camTruck.position.copy(oldGame.camTruck.position);
         game.camTruck.rotation.copy(oldGame.camTruck.rotation);
         game.camera.position.copy(oldGame.camera.position);
-        game.playerController.charHolder.onCoinBalanceChange =
-          oldGame.playerController.charHolder.onCoinBalanceChange;
-        game.playerController.charHolder.coinBalance =
-          oldGame.playerController.charHolder.coinBalance;
       });
     }
     gameEngine = _gameEngine;

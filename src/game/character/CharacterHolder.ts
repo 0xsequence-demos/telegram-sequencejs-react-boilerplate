@@ -1,6 +1,6 @@
 import { Object3D, Scene } from "three";
 import { dist2 } from "../utils/math";
-import { distPerTile } from "../constants";
+import { distPerTile, TREE_SCALE } from "../constants";
 import Character from "./Character";
 import { loadGLTF } from "../utils/loadGLTF";
 import { xzDist } from "../utils/xzDist";
@@ -13,23 +13,13 @@ import Animation from "../Animation";
 import Tree from "../Tree";
 import Safe from "../Safe";
 import Chest from "../Chest";
+import { sharedGameState } from "../sharedGameState";
+import { ValueSignal } from "../utils/ValueSignal";
 
 const __walkSpeed = 0.5;
 
 export class CharacterHolder extends Object3D {
   party: boolean = false;
-  private _coinBalance = 0;
-
-  public get coinBalance() {
-    return this._coinBalance;
-  }
-  public set coinBalance(value) {
-    this._coinBalance = value;
-    if (this.onCoinBalanceChange) {
-      this.onCoinBalanceChange(value);
-    }
-  }
-  onCoinBalanceChange: ((v: number) => void) | undefined;
 
   character: Character | undefined;
   worldspaceUiCoinTarget: Object3D;
@@ -38,6 +28,7 @@ export class CharacterHolder extends Object3D {
     public world: World,
     public animationManager: AnimationManager,
     public altWorldspaceUiCoinTarget?: Object3D,
+    private coinsInPocket = new ValueSignal(0),
   ) {
     super();
     this.worldspaceUiCoinTarget = altWorldspaceUiCoinTarget || this;
@@ -87,28 +78,28 @@ export class CharacterHolder extends Object3D {
     const cy = Math.round(this.position.z / distPerTile);
     const locationKey = `${cx};${cy}`;
 
-    for (const coin of this.world.items) {
-      const p = coin.position.clone();
-      p.applyMatrix4(coin.parent!.matrixWorld);
+    for (const item of this.world.items) {
+      const p = item.position.clone();
+      p.applyMatrix4(item.parent!.matrixWorld);
       if (xzDist(p, this.position) <= 1.8) {
         // console.log("ding");
-        this.world.itemsToDelete.push(coin);
-        this.scene.attach(coin);
-        const origin = coin.position.clone();
+        this.world.itemsToDelete.push(item);
+        this.scene.attach(item);
+        const origin = item.position.clone();
         let coinAdded = false;
         this.animationManager.animations.push(
           new Animation(
             (v) => {
-              coin.scale.setScalar(1 - v * 0.75);
-              coin.position.copy(origin);
-              coin.position.y += v * 10;
-              coin.position.lerp(this.worldspaceUiCoinTarget.position, v * v);
+              item.scale.setScalar((1 - v * 0.75) * item.userData.defaultScale);
+              item.position.copy(origin);
+              item.position.y += v * 10;
+              item.position.lerp(this.worldspaceUiCoinTarget.position, v * v);
               if (!coinAdded && v > 0.85) {
-                this.coinBalance++;
+                this.coinsInPocket.value++;
                 coinAdded = true;
               }
             },
-            () => this.scene.remove(coin),
+            () => this.scene.remove(item),
             0.04,
           ),
         );
@@ -188,7 +179,10 @@ export class CharacterHolder extends Object3D {
         if (dist <= 3.2) {
           if (safe instanceof Safe) {
             safe.shake = 0.2;
-            safe.deposit();
+            safe.deposit(
+              sharedGameState.walletAddress,
+              sharedGameState.coinsInPocket.value,
+            );
           }
           const dx = p.x - this.position.x;
           const dz = p.z - this.position.z;
@@ -253,6 +247,7 @@ export class CharacterHolder extends Object3D {
                     !n.name.includes("_")
                   ) {
                     const myWood = n.clone();
+                    myWood.userData.defaultScale = TREE_SCALE;
                     wood.push(myWood);
                     treeMesh.add(myWood);
                     this.scene.attach(myWood);
@@ -287,7 +282,7 @@ export class CharacterHolder extends Object3D {
                             myWood.rotation.z *= iv;
                           },
                           () => {
-                            this.world.items.push(myWood);
+                            this.world.addItem(myWood);
                           },
                           0.2 / myWood.position.y,
                         ),

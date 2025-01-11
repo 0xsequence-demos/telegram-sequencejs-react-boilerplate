@@ -5,3 +5,5 @@ export const sunDist = 50;
 
 export const uiCoinScreenX = 50;
 export const uiCoinScreenY = 50;
+
+export const TREE_SCALE = 1.5;

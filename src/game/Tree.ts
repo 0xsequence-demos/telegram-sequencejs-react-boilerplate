@@ -1,6 +1,7 @@
 import { Material, Mesh, Object3D } from "three";
 import { ditheredHole } from "./ditheredHole";
 import { loadGLTF } from "./utils/loadGLTF";
+import { TREE_SCALE } from "./constants";
 const treeSwayStrength = 0.0125;
 const leafSwayStrength = 0.025;
 
@@ -18,14 +19,13 @@ export default class Tree extends Object3D {
       });
       const tree = gltf.scene.getObjectByName(harvested ? "stump" : "tree")!;
       const myTree = tree.clone();
-      myTree.scale.setScalar(1.5);
+      myTree.scale.setScalar(TREE_SCALE);
       myTree.rotation.y = Math.random() * 6;
 
       myTree.traverse((n) => {
         if (n instanceof Mesh && n.material instanceof Material) {
           if (n.material.name === "wood") {
             n.material = n.material.clone();
-            console.log(n.name);
             if (!n.name.includes("stump")) {
               n.material.ditheredHole = ditheredHole;
             }

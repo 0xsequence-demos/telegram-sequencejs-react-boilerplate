@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "0xsequence": "2.1.0",
+    "@0xsequence/auth": "^2.1.0",
     "@0xsequence/design-system": "^1.8.0",
     "@0xsequence/indexer": "^2.1.0",
     "@0xsequence/network": "^2.1.0",
