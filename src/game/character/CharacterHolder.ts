@@ -1,4 +1,4 @@
-import { Object3D, Scene } from "three";
+import { Object3D, Scene, Vector3 } from "three";
 import { dist2 } from "../utils/math";
 import { distPerTile, TREE_SCALE } from "../constants";
 import Character from "./Character";
@@ -15,8 +15,11 @@ import Safe from "../Safe";
 import Chest from "../Chest";
 import { sharedGameState } from "../sharedGameState";
 import { ValueSignal } from "../utils/ValueSignal";
+import { clamp } from "../clamp";
+import { getTileType } from "../tileTypeCache";
 
 const __walkSpeed = 0.5;
+const __tempPos = new Vector3();
 
 export class CharacterHolder extends Object3D {
   party: boolean = false;
@@ -113,7 +116,27 @@ export class CharacterHolder extends Object3D {
     }
     const tileMeshExists = this.world.mapCache.has(locationKey)!;
     if (tileMeshExists) {
-      if (
+      const tileMesh = this.world.mapCache.get(locationKey)!;
+      if (tileMesh.name === "water") {
+        console.log("water");
+        __tempPos.x = clamp(
+          this.position.x,
+          tileMesh.position.x - (getTileType(cx - 1, cy) === "water" ? 4 : 3),
+          tileMesh.position.x + (getTileType(cx + 1, cy) === "water" ? 4 : 3),
+        );
+        __tempPos.z = clamp(
+          this.position.z,
+          tileMesh.position.z - (getTileType(cx, cy - 1) === "water" ? 4 : 3),
+          tileMesh.position.z + (getTileType(cx, cy + 1) === "water" ? 4 : 3),
+        );
+        const dist = xzDist(__tempPos, this.position);
+        const dx = __tempPos.x - this.position.x;
+        const dz = __tempPos.z - this.position.z;
+        const a = Math.atan2(dz, dx);
+        const gap = dist - 2;
+        this.position.x += Math.cos(a) * gap;
+        this.position.z += Math.sin(a) * gap;
+      } else if (
         this.world.knownChests.includes(locationKey) &&
         !this.world.openedChests.includes(locationKey)
       ) {
