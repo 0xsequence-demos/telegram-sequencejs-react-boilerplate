@@ -10,8 +10,8 @@
     "dev:cf:functions": "wrangler pages dev",
     "dev:cf:build": "nodemon  --watch 'src/**/*' -e ts,tsx --exec \"pnpm run build\"",
     "build": "tsc -b && vite build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
+    "lint": "eslint ./src",
+    "lint:fix": "eslint ./src --fix",
     "preview": "vite preview",
     "postinstall": "(cp -n .env.example .env) || echo already exists"
   },
