@@ -1,18 +1,38 @@
-import { Color, Material, Mesh, MeshStandardMaterial, Object3D } from "three";
+import {
+  Color,
+  Material,
+  Mesh,
+  MeshBasicMaterial,
+  MeshStandardMaterial,
+  Object3D,
+} from "three";
 import { loadGLTF } from "./utils/loadGLTF";
 import { ditheredHole } from "./ditheredHole";
 import { getMessageFromUnknownError } from "../utils/getMessageFromUnknownError";
 import { sharedGameState } from "./sharedGameState";
 import AnimatedNumber from "./utils/AnimatedNumber";
+import { ValueSignal } from "./utils/ValueSignal";
 
 export default class Safe extends Object3D {
   busy = new AnimatedNumber(0, 0.1, 0.1);
   bad = new AnimatedNumber(0, 0.1, 0.01);
   good = new AnimatedNumber(0, 0.1, 0.01);
   wheel: Object3D | undefined;
-  deposit(walletAddress: string | null, amount: number) {
-    if (walletAddress && amount > 0) {
+  tempCoinBuffer = 0;
+  deposit(
+    source: ValueSignal<number>,
+    walletAddress: string | null,
+    amount: number,
+  ) {
+    if (
+      walletAddress &&
+      amount > 0 &&
+      this.busy.value === 0 &&
+      this.bad.value === 0 &&
+      this.good.value === 0
+    ) {
       this.busy.target = 1;
+      this.tempCoinBuffer = amount;
       fetch("api/mint-erc20", {
         method: "POST",
         body: JSON.stringify({
@@ -26,6 +46,8 @@ export default class Safe extends Object3D {
             this.good.target = 1;
           } else {
             this.bad.target = 1;
+            source.value += this.tempCoinBuffer;
+            this.tempCoinBuffer = 0;
             this.shake = 0.5;
             r.text().then((text) => {
               const somethingIsWrongMessagePrefix = "Something went wrong: ";
@@ -85,7 +107,6 @@ export default class Safe extends Object3D {
           const myBox = box.clone();
           myBox.traverse((n) => {
             if (n instanceof Mesh && n.material instanceof Material) {
-              console.log("WHEEL?", n.name);
               n.material.ditheredHole = ditheredHole;
               if (
                 n.name === "box" &&
@@ -95,7 +116,11 @@ export default class Safe extends Object3D {
                 n.material.needsUpdate = true;
               } else if (n.name === "wheel") {
                 this.wheel = n;
-                console.log("WHEEL");
+              } else if (
+                n.name === "inside" &&
+                n.material instanceof MeshBasicMaterial
+              ) {
+                n.material.color = this.statusColor;
               }
             }
           });
