@@ -1,7 +1,5 @@
-import { Color, DoubleSide, Euler, Mesh, MeshStandardMaterial } from "three";
-import { getChamferedBoxGeometry } from "./geometry/chamferedBoxGeometry";
-import { lerp, wrapRange } from "./utils/math";
-import { getSharedPlaneGeometry } from "./getSharedPlaneGeometry";
+import { DoubleSide, Euler, Mesh, MeshStandardMaterial, Object3D } from "three";
+import { wrapRange } from "./utils/math";
 import { distPerTile } from "./constants";
 import { randFloatSpread } from "three/src/math/MathUtils.js";
 // import Coin from "./Coin";
@@ -11,35 +9,28 @@ import Tree from "./Tree";
 import { ditheredHole } from "./ditheredHole";
 import Safe from "./Safe";
 import Chest from "./Chest";
+import { loadGLTF } from "./utils/loadGLTF";
 export function makeTile(ix: number, iy: number, harvested = false) {
   const x = ix * distPerTile;
   const y = iy * distPerTile;
 
-  const mesh = new Mesh(
-    getSharedPlaneGeometry(),
-    new MeshStandardMaterial({
-      color: new Color(
-        0.3,
-        lerp(((ix * 37 + iy * 19 + 9) % 10) / 10, 0.6, 0.8),
-        0.2,
-      ),
-      roughness: 0.75,
-      metalness: 0,
-      emissive: 0x171e2c,
-    }),
-  );
-  mesh.receiveShadow = true;
-  getChamferedBoxGeometry(distPerTile, 2, distPerTile, 0.25).then(
-    (g) => (mesh.geometry = g),
-  );
+  const tileBase = new Object3D();
+  loadGLTF("world-tiles.glb").then((gltf) => {
+    const tile = gltf.scene.getObjectByName("plane-grassy");
+    if (tile) {
+      tile.receiveShadow = true;
+      tileBase.add(tile.clone());
+    }
+  });
+
   if (wrapRange(ix, 0, 20) === 0 && wrapRange(iy, 0, 20) === 4) {
     const safe = new Safe();
     safe.scale.setScalar(2);
     safe.position.set(0, 1, 0);
     safe.rotation.y = Math.PI;
     safe.name = "safe";
-    mesh.add(safe);
-    mesh.userData.safe = true;
+    tileBase.add(safe);
+    tileBase.userData.safe = true;
   } else if (wrapRange(ix, 0, 10) === 0 && wrapRange(iy, 0, 10) === 1) {
     if (!harvested) {
       const chest = new Chest(wrapRange(ix * 37 + iy * 19 + 18, 0, 3));
@@ -47,8 +38,8 @@ export function makeTile(ix: number, iy: number, harvested = false) {
       chest.position.set(0, 1, 0);
       // chest.rotation.y = Math.PI;
       chest.name = "chest";
-      mesh.add(chest);
-      mesh.userData.chest = true;
+      tileBase.add(chest);
+      tileBase.userData.chest = true;
     }
   } else if (
     wrapRange(ix * 37 + iy * 19 + 18, 0, wrapRange(ix + iy, 11, 21)) <= 4
@@ -60,9 +51,9 @@ export function makeTile(ix: number, iy: number, harvested = false) {
     );
     const tree = new Tree(harvested);
     tree.rotation.copy(rot);
-    mesh.add(tree);
+    tileBase.add(tree);
     tree.position.y = 1;
-    mesh.userData.tree = true;
+    tileBase.userData.tree = true;
   } else if (
     wrapRange(ix * 47 + iy * 19 + 91, 0, wrapRange(ix + iy, 24, 31)) < 3
   ) {
@@ -87,7 +78,7 @@ export function makeTile(ix: number, iy: number, harvested = false) {
         );
         rock.receiveShadow = true;
         rock.castShadow = true;
-        mesh.add(rock);
+        tileBase.add(rock);
       }
     });
   } else if (
@@ -123,24 +114,20 @@ export function makeTile(ix: number, iy: number, harvested = false) {
             rock.rotation.set(0, randFloatSpread(0.2) - a, 0);
             rock.receiveShadow = true;
             rock.castShadow = true;
-            mesh.add(rock);
+            tileBase.add(rock);
           }
         }
         const keyRock = new Mesh(g, rockMat);
         keyRock.position.set(0, 0.25, 0);
         keyRock.rotation.z = Math.PI * -0.5;
-        mesh.add(keyRock);
+        tileBase.add(keyRock);
         keyRock.name = "tower";
       });
-      mesh.userData.tower = true;
+      tileBase.userData.tower = true;
     }
   }
-  mesh.position.set(x, -1, y);
-  mesh.rotation.set(
-    randFloatSpread(0.05),
-    randFloatSpread(0.05),
-    randFloatSpread(0.05),
-  );
-  mesh.scale.setScalar(0.001);
-  return mesh;
+  tileBase.position.set(x, -1, y);
+  tileBase.rotation.set(0, ~~(Math.random() * 100) * Math.PI * 0.5, 0);
+  tileBase.scale.setScalar(0.001);
+  return tileBase;
 }
