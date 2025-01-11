@@ -1,7 +1,7 @@
-import { Mesh, Object3D } from "three";
+import { Object3D } from "three";
 
 export default class World {
-  mapCache = new Map<string, Mesh>();
+  mapCache = new Map<string, Object3D>();
   knownSafes: string[] = [];
   knownChests: string[] = [];
   openedChests: string[] = [];
