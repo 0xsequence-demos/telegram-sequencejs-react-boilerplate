@@ -180,6 +180,7 @@ export class CharacterHolder extends Object3D {
           if (safe instanceof Safe) {
             safe.shake = 0.2;
             safe.deposit(
+              sharedGameState.coinsInPocket,
               sharedGameState.walletAddress,
               sharedGameState.coinsInPocket.value,
             );
