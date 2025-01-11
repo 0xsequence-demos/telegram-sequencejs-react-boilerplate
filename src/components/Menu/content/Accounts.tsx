@@ -48,7 +48,6 @@ function MenuContentAccounts(props: {
   } = props;
 
   const [accountsUnlinking, setAccountsUnlinking] = useState<string[]>([]);
-
   return (
     <div className="settingsMenuContent scroller">
       <h3>

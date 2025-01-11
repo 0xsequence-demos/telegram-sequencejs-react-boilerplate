@@ -120,3 +120,14 @@ body {
 .menuTabs {
   margin: 8px;
 }
+
+@keyframes fadeAnimation {
+    0%   { opacity:40%; }
+    50%  { opacity:60%; }
+    100% { opacity:40%; }
+}
+
+.animated-fade {
+    opacity:1;  
+    animation: fadeAnimation 0.75s infinite;
+}

@@ -6,9 +6,18 @@ import { useEffect, useState } from "react";
 import { getGameEngine } from "./game/gameEngine";
 import { Account, Network } from "@0xsequence/waas";
 import { sequence } from "./sequence";
+import { useQuery } from "@tanstack/react-query";
 import { Address } from "viem";
 import { getMessageFromUnknownError } from "./utils/getMessageFromUnknownError";
 import { ToastProvider } from "@0xsequence/design-system";
+import { SequenceIndexer, TokenBalance } from "@0xsequence/indexer";
+import ErrorToast from "./components/ErrorToast";
+import { sharedGameState } from "./game/sharedGameState";
+
+const indexerClient = new SequenceIndexer(
+  `https://${import.meta.env.VITE_CHAIN_HANDLE}-indexer.sequence.app`,
+  import.meta.env.VITE_SEQUENCE_PROJECT_ACCESS_KEY,
+);
 
 const darkTheme = createTheme({
   palette: {
@@ -90,7 +99,7 @@ const Home = () => {
     };
   }, [walletAddress]);
 
-  const [coinBalance, setCoinBalance] = useState(0);
+  const [unsafeCoinBalance, setUnsafeCoinBalance] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
@@ -104,10 +113,63 @@ const Home = () => {
   }, [menuOpen]);
 
   useEffect(() => {
+    sharedGameState.coinsInPocket.listen(setUnsafeCoinBalance);
+    sharedGameState.coinsInSafe.expected.listen(setExpectedCoinCount);
+  }, []);
+
+  useEffect(() => {
     // getGameEngine().game.party = true;
-    getGameEngine().game.playerController.charHolder.onCoinBalanceChange =
-      setCoinBalance;
+    sharedGameState.walletAddress = walletAddress;
+    sharedGameState.coinsInSafe.errorMessage.listen(setMinterErrorMessage);
   }, [walletAddress]);
+
+  const [confirmedCoinCount, setConfirmedCoinCount] = useState(0);
+  const [expectedCoinCount, setExpectedCoinCount] = useState(0);
+
+  const [minterErrorMessage, setMinterErrorMessage] = useState<string>("");
+  const [indexerErrorMessage, setIndexerErrorMessage] = useState<string>("");
+
+  const [inventoryStatus, setInventoryStatus] = useState<
+    "unknown" | "empty" | "populated"
+  >("unknown");
+
+  //start polling indexer
+  useQuery({
+    queryKey: ["tokens", walletAddress],
+    queryFn: async () => {
+      if (!walletAddress) {
+        return [];
+      }
+      try {
+        const r = await indexerClient.getTokenBalances({
+          accountAddress: walletAddress,
+          contractAddress: import.meta.env.VITE_COIN_CONTRACT_ADDRESS,
+          includeMetadata: false,
+        });
+        const balances: TokenBalance[] = r.balances || [];
+        setInventoryStatus(balances.length === 0 ? "empty" : "populated");
+        const coinCount = parseInt(
+          balances.find((token: TokenBalance) => token.tokenID === "0")
+            ?.balance || "0",
+        );
+        if (coinCount !== confirmedCoinCount) {
+          setConfirmedCoinCount(coinCount);
+          sharedGameState.coinsInSafe.expected.value = coinCount;
+        }
+        return balances;
+      } catch (e) {
+        setIndexerErrorMessage(getMessageFromUnknownError(e));
+        setTimeout(() => setIndexerErrorMessage(""), 5000);
+        return [];
+      }
+    },
+    refetchInterval: 5000,
+    initialData: [],
+    enabled: !!walletAddress,
+  });
+
+  const maybeFadedCoinCount =
+    expectedCoinCount !== confirmedCoinCount ? "animated-fade" : "";
 
   return (
     <ThemeProvider theme={darkTheme}>
@@ -117,7 +179,28 @@ const Home = () => {
             {walletAddress && <MainConnected walletAddress={walletAddress} />}
           </div>
         </div>
-        <div className="coin-balance">{coinBalance}</div>
+        <div className="coin-balance">
+          <span className={maybeFadedCoinCount}>
+            {inventoryStatus === "unknown" ? "..." : expectedCoinCount}
+          </span>
+          {unsafeCoinBalance ? `+${unsafeCoinBalance}` : ""}
+        </div>
+        {minterErrorMessage && (
+          <ErrorToast
+            description={minterErrorMessage}
+            onClose={() => {
+              setMinterErrorMessage("");
+            }}
+          />
+        )}
+        {indexerErrorMessage && (
+          <ErrorToast
+            description={indexerErrorMessage}
+            onClose={() => {
+              setIndexerErrorMessage("");
+            }}
+          />
+        )}
         <Menu
           network={network}
           setNetwork={setNetwork}

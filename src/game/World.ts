@@ -10,5 +10,9 @@ export default class World {
   knownTowers: string[] = [];
   availableTowers: string[] = [];
   items: Object3D[] = [];
+  addItem(item: Object3D) {
+    item.userData.defaultScale = item.userData.defaultScale || 1;
+    this.items.push(item);
+  }
   itemsToDelete: Object3D[] = [];
 }
