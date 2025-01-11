@@ -36,7 +36,9 @@ export function makeTile(ix: number, iy: number, harvested = false) {
       tile.receiveShadow = true;
       const myTile = tile.clone();
       tileBase.add(myTile);
-      if (tileType === "water") {
+      if (tileType === "plane-grassy") {
+        myTile.rotation.set(0, ~~(Math.random() * 100) * Math.PI * 0.5, 0);
+      } else if (tileType === "water") {
         myTile.onBeforeRender = () => {
           myTile.position.y =
             Math.sin(performance.now() * 0.0015 + (ix + iy) * 0.75) * 0.4;
@@ -152,9 +154,6 @@ export function makeTile(ix: number, iy: number, harvested = false) {
     }
   }
   tileBase.position.set(x, -1, y);
-  if (tileType === "plane-grassy") {
-    tileBase.rotation.set(0, ~~(Math.random() * 100) * Math.PI * 0.5, 0);
-  }
   tileBase.scale.setScalar(0.001);
   return tileBase;
 }
