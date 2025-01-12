@@ -408,6 +408,12 @@ export default class Game {
             if (mesh.userData.tree && !world.knownTrees.includes(key)) {
               world.knownTrees.push(key);
             }
+            if (
+              mesh.userData.workbenchCrude &&
+              !world.knownWorkbenches.includes(key)
+            ) {
+              world.knownWorkbenches.push(key);
+            }
             if (mesh.userData.tower && !world.knownTowers.includes(key)) {
               world.knownTowers.push(key);
               world.availableTowers.push(key);

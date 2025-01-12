@@ -11,6 +11,7 @@ import Safe from "./Safe";
 import Chest from "./Chest";
 import { loadGLTF } from "./utils/loadGLTF";
 import { getTileType } from "./tileTypeCache";
+import WorkbenchCrude from "./WorkbenchCrude";
 
 export function makeTile(ix: number, iy: number, harvested = false) {
   const x = ix * distPerTile;
@@ -48,7 +49,13 @@ export function makeTile(ix: number, iy: number, harvested = false) {
   });
 
   if (tileType === "plane-grassy") {
-    if (wrapRange(ix, 0, 20) === 0 && wrapRange(iy, 0, 20) === 4) {
+    if (wrapRange(ix - 1, 0, 20) === 0 && wrapRange(iy, 0, 20) === 4) {
+      const workbench = new WorkbenchCrude();
+      workbench.position.set(0, 1, 0);
+      workbench.name = "workbench-crude";
+      tileBase.add(workbench);
+      tileBase.userData.workbenchCrude = true;
+    } else if (wrapRange(ix, 0, 20) === 0 && wrapRange(iy, 0, 20) === 4) {
       const safe = new Safe();
       safe.scale.setScalar(2);
       safe.position.set(0, 1, 0);

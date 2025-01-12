@@ -17,6 +17,7 @@ import { sharedGameState } from "../sharedGameState";
 import { ValueSignal } from "../utils/ValueSignal";
 import { clamp } from "../clamp";
 import { getTileType } from "../tileTypeCache";
+import WorkbenchCrude from "../WorkbenchCrude";
 
 const __walkSpeed = 0.5;
 const __tempPos = new Vector3();
@@ -118,7 +119,6 @@ export class CharacterHolder extends Object3D {
     if (tileMeshExists) {
       const tileMesh = this.world.mapCache.get(locationKey)!;
       if (tileMesh.name === "water") {
-        console.log("water");
         __tempPos.x = clamp(
           this.position.x,
           tileMesh.position.x - (getTileType(cx - 1, cy) === "water" ? 4 : 3),
@@ -189,6 +189,24 @@ export class CharacterHolder extends Object3D {
           const dz = p.z - this.position.z;
           const a = Math.atan2(dz, dx);
           const gap = dist - 2.2;
+          this.position.x += Math.cos(a) * gap;
+          this.position.z += Math.sin(a) * gap;
+        }
+      } else if (this.world.knownWorkbenches.includes(locationKey)) {
+        // console.log("open");
+        const tileMesh = this.world.mapCache.get(locationKey)!;
+        const workbench = tileMesh.getObjectByName("workbench-crude")!;
+        const p = workbench.position.clone();
+        p.applyMatrix4(workbench.parent!.matrixWorld);
+        const dist = xzDist(p, this.position);
+        if (dist <= 1.6) {
+          if (workbench instanceof WorkbenchCrude) {
+            workbench.shake = 0.2;
+          }
+          const dx = p.x - this.position.x;
+          const dz = p.z - this.position.z;
+          const a = Math.atan2(dz, dx);
+          const gap = dist - 1.6;
           this.position.x += Math.cos(a) * gap;
           this.position.z += Math.sin(a) * gap;
         }
