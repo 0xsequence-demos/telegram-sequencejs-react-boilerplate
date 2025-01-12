@@ -6,6 +6,7 @@ export default class World {
   knownChests: string[] = [];
   openedChests: string[] = [];
   knownTrees: string[] = [];
+  knownWorkbenches: string[] = [];
   harvestedTrees: string[] = [];
   knownTowers: string[] = [];
   availableTowers: string[] = [];
