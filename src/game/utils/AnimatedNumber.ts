@@ -15,11 +15,12 @@ export default class AnimatedNumber {
       return;
     }
     const sign = Math.sign(delta);
-    const speed = Math.min(timeDelta, 0.2) * 60;
-    const step = Math.min(
-      mag * speed,
-      sign === 1 ? this.speedLimitUp : this.speedLimitDown,
+    const speed = Math.min(
+      mag,
+      Math.min(timeDelta, 0.2) *
+        60 *
+        (sign === 1 ? this.speedLimitUp : this.speedLimitDown),
     );
-    this.value += sign * step;
+    this.value += sign * speed;
   }
 }
