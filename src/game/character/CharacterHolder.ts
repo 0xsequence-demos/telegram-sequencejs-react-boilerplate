@@ -67,7 +67,7 @@ export class CharacterHolder extends Object3D {
       this.character.idling.target = this.idledTime > 4 ? 1 : 0;
       this.character.running.target = Math.min(1, inputMoveMag * 2);
     }
-    const mag = inputMoveMag * __walkSpeed;
+    const mag = inputMoveMag * __walkSpeed * deltaTime * 60;
     const walkX = Math.cos(inputMoveAngle) * mag;
     const walkY = Math.sin(inputMoveAngle) * mag;
 
