@@ -1,7 +1,7 @@
 import { Color, Mesh, Object3D, Vector3 } from "three";
 import Limb from "./Limb";
 import { getProtoTargetMesh } from "./protoTargetMesh";
-import { charactetAnimations } from "./dances";
+import { characterAnimations } from "./dances";
 import { SubDanceLayer } from "./SubDanceLayer";
 import AnimatedNumber from "../utils/AnimatedNumber";
 
@@ -90,9 +90,9 @@ export default class Character {
     this.running.update(timeDelta);
     this.lastTime = time;
     const danceTime = time * (1.8 / 2);
-    const danceBasic = charactetAnimations.danceBasic;
-    const danceGreeting = charactetAnimations.greeting;
-    const danceRunning = charactetAnimations.running;
+    const danceBasic = characterAnimations.danceBasic;
+    const danceGreeting = characterAnimations.greeting;
+    const danceRunning = characterAnimations.running;
     let weightDance = this.happiness.value * this.idling.value;
     let weightGreeting = 1 - weightDance;
     const weightRunning = this.running.value;

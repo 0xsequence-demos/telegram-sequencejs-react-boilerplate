@@ -114,7 +114,7 @@ const greeting: Dance = {
   },
 };
 
-export const charactetAnimations = {
+export const characterAnimations = {
   danceBasic,
   greeting,
   running,
