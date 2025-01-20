@@ -6,6 +6,7 @@ interface IEnv {
   PKEY: string; // Private key for EOA wallet
   COIN_CONTRACT_ADDRESS: string; // Deployed ERC1155 or ERC721 contract address
   BUILDER_PROJECT_ACCESS_KEY: string; // From sequence.build
+  DEV_BUILDER_PROJECT_ACCESS_KEY: string; // From dev.sequence.build
   CHAIN_HANDLE: string; // Standardized chain name – See https://docs.sequence.xyz/multi-chain-support
 }
 
@@ -50,8 +51,8 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
   }
 
   if (
-    ctx.env.BUILDER_PROJECT_ACCESS_KEY === undefined ||
-    ctx.env.BUILDER_PROJECT_ACCESS_KEY === ""
+    ctx.env.DEV_BUILDER_PROJECT_ACCESS_KEY === undefined ||
+    ctx.env.DEV_BUILDER_PROJECT_ACCESS_KEY === ""
   ) {
     return fastResponse(
       "Make sure PROJECT_ACCESS_KEY is configured in your environment",
@@ -79,18 +80,18 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
   const dataRaw = [address, amount];
   const contractAddress = ctx.env.COIN_CONTRACT_ADDRESS;
 
-  const relayerUrl = `https://${ctx.env.CHAIN_HANDLE}-relayer.sequence.app`;
+  const relayerUrl = `https://dev-${ctx.env.CHAIN_HANDLE}-relayer.sequence.app`;
 
   // instantiate settings
   const settings: Partial<SessionSettings> = {
     networks: [
       {
         ...networks[network.chainId],
-        rpcUrl: network.rpcUrl,
+        rpcUrl: network.rpcUrl.replace("https://", "https://dev-"),
         relayer: {
           url: relayerUrl,
           provider: {
-            url: network.rpcUrl,
+            url: network.rpcUrl.replace("https://", "https://dev-"),
           },
         },
       },
@@ -101,7 +102,7 @@ export const onRequest: PagesFunction<IEnv> = async (ctx) => {
   const session = await Session.singleSigner({
     settings: settings,
     signer: ctx.env.PKEY,
-    projectAccessKey: ctx.env.BUILDER_PROJECT_ACCESS_KEY,
+    projectAccessKey: ctx.env.DEV_BUILDER_PROJECT_ACCESS_KEY,
   });
 
   // get signer

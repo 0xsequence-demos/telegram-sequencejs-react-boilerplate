@@ -15,7 +15,7 @@ import ErrorToast from "./components/ErrorToast";
 import { sharedGameState } from "./game/sharedGameState";
 
 const indexerClient = new SequenceIndexer(
-  `https://${import.meta.env.VITE_CHAIN_HANDLE}-indexer.sequence.app`,
+  `https://dev-${import.meta.env.VITE_CHAIN_HANDLE}-indexer.sequence.app`,
   import.meta.env.VITE_SEQUENCE_PROJECT_ACCESS_KEY,
 );
 
